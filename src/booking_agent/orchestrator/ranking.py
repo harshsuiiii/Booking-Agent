@@ -190,3 +190,14 @@ def explain(
         total_duration_minutes=total_duration,
         highlights=highlights,
     )
+
+
+from booking_agent.orchestrator.dedupe import DedupeGroup  # noqa: E402 — after _sort_key
+
+
+def rank_groups(
+    groups: list[DedupeGroup],
+    preferences: RankingPreferences,
+) -> list[DedupeGroup]:
+    """Sort DedupeGroups by their primary offer's sort key (same tie-breakers as rank())."""
+    return sorted(groups, key=lambda g: _sort_key(g.primary, preferences))

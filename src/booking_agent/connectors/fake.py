@@ -97,7 +97,11 @@ class FakeConnector(BaseConnector):
         price_drift: Decimal = Decimal("0"),
         delay_seconds: float = 0.0,
         base_price: Decimal = Decimal("3000"),
+        supplier_id: str = "fake",
     ) -> None:
+        # Set before super().__init__ so capabilities.supplier_id is correct
+        # when BaseConnector binds the logger.
+        self.SUPPLIER_ID = supplier_id
         super().__init__(
             secrets=secrets or EnvSecretsProvider(),
             timeout_seconds=timeout_seconds,
