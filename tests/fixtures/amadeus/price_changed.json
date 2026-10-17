@@ -1,0 +1,67 @@
+{
+  "data": {
+    "type": "flight-offers-pricing",
+    "flightOffers": [
+      {
+        "type": "flight-offer",
+        "id": "1",
+        "source": "GDS",
+        "instantTicketingRequired": false,
+        "oneWay": true,
+        "lastTicketingDate": "2025-09-01",
+        "lastTicketingDateTime": "2025-09-01T23:59:00",
+        "numberOfBookableSeats": 9,
+        "itineraries": [
+          {
+            "duration": "PT2H30M",
+            "segments": [
+              {
+                "departure": { "iataCode": "DEL", "at": "2025-09-01T06:00:00" },
+                "arrival": { "iataCode": "BOM", "at": "2025-09-01T08:30:00" },
+                "carrierCode": "AI",
+                "number": "101",
+                "aircraft": { "code": "320" },
+                "operating": { "carrierCode": "AI" },
+                "duration": "PT2H30M",
+                "id": "1",
+                "numberOfStops": 0,
+                "blacklistedInEU": false
+              }
+            ]
+          }
+        ],
+        "price": {
+          "currency": "INR",
+          "total": "4200.00",
+          "base": "3500.00",
+          "fees": [],
+          "grandTotal": "4200.00",
+          "taxes": [
+            { "amount": "500.00", "code": "YQ" },
+            { "amount": "200.00", "code": "IN" }
+          ]
+        },
+        "pricingOptions": { "fareType": ["PUBLISHED"] },
+        "validatingAirlineCodes": ["AI"],
+        "travelerPricings": [
+          {
+            "travelerId": "1",
+            "fareOption": "STANDARD",
+            "travelerType": "ADULT",
+            "price": { "currency": "INR", "total": "4200.00", "base": "3500.00" },
+            "fareDetailsBySegment": [
+              {
+                "segmentId": "1",
+                "cabin": "ECONOMY",
+                "fareBasis": "YOWCHIN",
+                "class": "Y",
+                "includedCheckedBags": { "quantity": 1 }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "fareRules": { "rules": [] }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "amadeusOAuth2Token",
+  "username": "REDACTED@REDACTED.example",
+  "application_name": "booking-agent-test",
+  "client_id": "REDACTED",
+  "token_type": "Bearer",
+  "access_token": "REDACTED_ACCESS_TOKEN",
+  "expires_in": 1799,
+  "state": "approved",
+  "scope": ""
+}

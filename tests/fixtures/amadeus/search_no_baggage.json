@@ -1,0 +1,68 @@
+{
+  "meta": { "count": 1 },
+  "data": [
+    {
+      "type": "flight-offer",
+      "id": "1",
+      "source": "GDS",
+      "instantTicketingRequired": false,
+      "oneWay": true,
+      "lastTicketingDate": "2025-09-01",
+      "lastTicketingDateTime": "2025-09-01T23:59:00",
+      "numberOfBookableSeats": 9,
+      "itineraries": [
+        {
+          "duration": "PT2H30M",
+          "segments": [
+            {
+              "departure": { "iataCode": "DEL", "at": "2025-09-01T06:00:00" },
+              "arrival": { "iataCode": "BOM", "at": "2025-09-01T08:30:00" },
+              "carrierCode": "SG",
+              "number": "8101",
+              "aircraft": { "code": "737" },
+              "operating": { "carrierCode": "SG" },
+              "duration": "PT2H30M",
+              "id": "1",
+              "numberOfStops": 0,
+              "blacklistedInEU": false
+            }
+          ]
+        }
+      ],
+      "price": {
+        "currency": "INR",
+        "total": "2800.00",
+        "base": "2200.00",
+        "fees": [],
+        "grandTotal": "2800.00",
+        "taxes": [
+          { "amount": "600.00", "code": "IN" }
+        ]
+      },
+      "pricingOptions": {
+        "fareType": ["PUBLISHED"],
+        "refundableFare": false
+      },
+      "validatingAirlineCodes": ["SG"],
+      "travelerPricings": [
+        {
+          "travelerId": "1",
+          "fareOption": "STANDARD",
+          "travelerType": "ADULT",
+          "price": { "currency": "INR", "total": "2800.00", "base": "2200.00" },
+          "fareDetailsBySegment": [
+            {
+              "segmentId": "1",
+              "cabin": "ECONOMY",
+              "fareBasis": "TLITE",
+              "class": "T"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "dictionaries": {
+    "carriers": { "SG": "SPICEJET" }
+  }
+}

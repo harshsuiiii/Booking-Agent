@@ -1,0 +1,95 @@
+{
+  "meta": { "count": 1 },
+  "data": [
+    {
+      "type": "flight-offer",
+      "id": "1",
+      "source": "GDS",
+      "instantTicketingRequired": false,
+      "oneWay": true,
+      "lastTicketingDate": "2025-09-01",
+      "lastTicketingDateTime": "2025-09-01T23:59:00",
+      "numberOfBookableSeats": 5,
+      "itineraries": [
+        {
+          "duration": "PT6H45M",
+          "segments": [
+            {
+              "departure": { "iataCode": "DEL", "terminal": "3", "at": "2025-09-01T06:00:00" },
+              "arrival": { "iataCode": "BLR", "terminal": "2", "at": "2025-09-01T08:30:00" },
+              "carrierCode": "6E",
+              "number": "205",
+              "aircraft": { "code": "320" },
+              "operating": { "carrierCode": "6E" },
+              "duration": "PT2H30M",
+              "id": "1",
+              "numberOfStops": 0,
+              "blacklistedInEU": false
+            },
+            {
+              "departure": { "iataCode": "BLR", "terminal": "2", "at": "2025-09-01T10:15:00" },
+              "arrival": { "iataCode": "CCU", "terminal": "1", "at": "2025-09-01T12:45:00" },
+              "carrierCode": "6E",
+              "number": "512",
+              "aircraft": { "code": "321" },
+              "operating": { "carrierCode": "6E" },
+              "duration": "PT2H30M",
+              "id": "2",
+              "numberOfStops": 0,
+              "blacklistedInEU": false
+            }
+          ]
+        }
+      ],
+      "price": {
+        "currency": "INR",
+        "total": "5200.00",
+        "base": "4000.00",
+        "fees": [],
+        "grandTotal": "5200.00",
+        "taxes": [
+          { "amount": "800.00", "code": "YQ" },
+          { "amount": "400.00", "code": "IN" }
+        ]
+      },
+      "pricingOptions": {
+        "fareType": ["PUBLISHED"],
+        "refundableFare": false
+      },
+      "validatingAirlineCodes": ["6E"],
+      "travelerPricings": [
+        {
+          "travelerId": "1",
+          "fareOption": "STANDARD",
+          "travelerType": "ADULT",
+          "price": { "currency": "INR", "total": "5200.00", "base": "4000.00" },
+          "fareDetailsBySegment": [
+            {
+              "segmentId": "1",
+              "cabin": "ECONOMY",
+              "fareBasis": "SOWCHIN",
+              "class": "S",
+              "includedCheckedBags": { "quantity": 1 }
+            },
+            {
+              "segmentId": "2",
+              "cabin": "ECONOMY",
+              "fareBasis": "SOWCHIN",
+              "class": "S",
+              "includedCheckedBags": { "quantity": 1 }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "dictionaries": {
+    "locations": {
+      "DEL": { "cityCode": "DEL", "countryCode": "IN" },
+      "BLR": { "cityCode": "BLR", "countryCode": "IN" },
+      "CCU": { "cityCode": "CCU", "countryCode": "IN" }
+    },
+    "aircraft": { "320": "AIRBUS A320", "321": "AIRBUS A321" },
+    "carriers": { "6E": "INDIGO" }
+  }
+}
