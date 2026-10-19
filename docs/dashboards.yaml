@@ -1,0 +1,236 @@
+# Booking Agent — Grafana Dashboard Specification
+#
+# Each panel definition can be imported into Grafana (Loki for logs,
+# Tempo for traces, Prometheus or Grafana Alloy for metrics).
+#
+# Metrics are emitted as structured log fields by RequestLoggingMiddleware
+# and MetricsCollector; a log-to-metric pipeline (e.g. Grafana Alloy /
+# Loki recording rules) converts them to Prometheus counters / histograms.
+#
+# Alert thresholds are suggestions — tune to your SLAs and GDS contracts.
+
+dashboards:
+
+  # ── 1. API Overview ──────────────────────────────────────────────────────────
+  - title: "Booking Agent — API Overview"
+    uid: booking-agent-api
+    panels:
+
+      - title: "Request Rate (req/s)"
+        type: timeseries
+        query: |
+          rate(http_requests_total[5m])
+        legend: "{{ method }} {{ path }}"
+
+      - title: "Error Rate (%)"
+        type: timeseries
+        query: |
+          100 * sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+              / sum(rate(http_requests_total[5m]))
+        thresholds:
+          - value: 1.0
+            color: yellow
+            label: "1% errors"
+          - value: 5.0
+            color: red
+            label: "5% errors — page on-call"
+
+      - title: "P50 / P95 / P99 Request Latency"
+        type: timeseries
+        query: |
+          histogram_quantile(0.50, rate(http_request_duration_ms_bucket[5m]))
+          histogram_quantile(0.95, rate(http_request_duration_ms_bucket[5m]))
+          histogram_quantile(0.99, rate(http_request_duration_ms_bucket[5m]))
+        thresholds:
+          - value: 3000
+            color: yellow
+            label: "p95 > 3 s"
+
+      - title: "Rate-Limited Requests (429/min)"
+        type: stat
+        query: |
+          increase(http_requests_total{status_code="429"}[1m])
+        thresholds:
+          - value: 10
+            color: yellow
+          - value: 100
+            color: red
+
+  # ── 2. Per-Supplier Performance ──────────────────────────────────────────────
+  - title: "Booking Agent — Supplier Performance"
+    uid: booking-agent-suppliers
+    panels:
+
+      - title: "Search Latency P50 by Supplier (ms)"
+        type: timeseries
+        query: |
+          histogram_quantile(0.50,
+            rate(supplier_search_duration_ms_bucket[5m])
+          ) by (supplier_id)
+        thresholds:
+          - value: 5000
+            color: yellow
+            label: "5 s — approaching timeout"
+          - value: 7000
+            color: red
+            label: "7 s — at timeout"
+
+      - title: "Search Latency P95 by Supplier (ms)"
+        type: timeseries
+        query: |
+          histogram_quantile(0.95,
+            rate(supplier_search_duration_ms_bucket[5m])
+          ) by (supplier_id)
+
+      - title: "Error Rate by Supplier (%)"
+        type: timeseries
+        query: |
+          100 * rate(supplier_errors_total[5m]) by (supplier_id)
+              / rate(supplier_searches_total[5m]) by (supplier_id)
+        thresholds:
+          - value: 5
+            color: yellow
+          - value: 20
+            color: red
+
+      - title: "Timeout Rate by Supplier (%)"
+        type: timeseries
+        query: |
+          100 * rate(supplier_timeouts_total[5m]) by (supplier_id)
+              / rate(supplier_searches_total[5m]) by (supplier_id)
+        thresholds:
+          - value: 10
+            color: yellow
+
+      - title: "Circuit Breaker State by Supplier"
+        type: state-timeline
+        query: |
+          supplier_circuit_breaker_state by (supplier_id)
+        value_mappings:
+          0: { text: CLOSED, color: green }
+          1: { text: HALF-OPEN, color: yellow }
+          2: { text: OPEN, color: red }
+
+      - title: "Supplier Win Rate (%)"
+        description: "% of searches where this supplier provided the top-ranked offer"
+        type: bar-gauge
+        query: |
+          100 * supplier_wins_total by (supplier_id)
+              / supplier_searches_total by (supplier_id)
+
+      - title: "Offers Returned per Search (avg)"
+        type: stat
+        query: |
+          rate(supplier_offers_returned_total[5m]) by (supplier_id)
+              / rate(supplier_searches_total[5m]) by (supplier_id)
+
+  # ── 3. GDS Call Cost Tracking ────────────────────────────────────────────────
+  - title: "Booking Agent — GDS Cost"
+    uid: booking-agent-gds-cost
+    panels:
+
+      - title: "Look-to-Book Ratio by Supplier"
+        description: >
+          Searches per completed booking. Most GDS contracts begin to charge
+          extra above 300-500:1. Alert at 400:1.
+        type: timeseries
+        query: |
+          supplier_searches_total by (supplier_id)
+              / supplier_bookings_total by (supplier_id)
+        thresholds:
+          - value: 300
+            color: yellow
+            label: "300:1 — monitor"
+          - value: 500
+            color: red
+            label: "500:1 — alert: approaching GDS limit"
+
+      - title: "Total Searches (30 days) by Supplier"
+        type: bar-gauge
+        query: |
+          increase(supplier_searches_total[30d]) by (supplier_id)
+
+      - title: "Total Bookings (30 days) by Supplier"
+        type: bar-gauge
+        query: |
+          increase(supplier_bookings_total[30d]) by (supplier_id)
+
+      - title: "Price (re-price) Calls (30 days)"
+        type: bar-gauge
+        query: |
+          increase(supplier_price_calls_total[30d]) by (supplier_id)
+
+  # ── 4. Booking Service Health ────────────────────────────────────────────────
+  - title: "Booking Agent — Booking Service"
+    uid: booking-agent-bookings
+    panels:
+
+      - title: "Bookings by State (current snapshot)"
+        type: pie-chart
+        query: |
+          bookings_total by (state)
+
+      - title: "Booking Failures (1h)"
+        type: stat
+        query: |
+          increase(bookings_total{state="FAILED"}[1h])
+        thresholds:
+          - value: 1
+            color: yellow
+          - value: 5
+            color: red
+
+      - title: "Paid-but-not-Ticketed (open)"
+        type: stat
+        query: |
+          bookings_total{state="PAID"} - bookings_total{state="TICKETED"}
+        thresholds:
+          - value: 1
+            color: red
+            label: "Needs reconciliation"
+
+      - title: "Confirmation Token Expiry Rate (%)"
+        type: timeseries
+        query: |
+          100 * rate(booking_token_expired_total[1h])
+              / rate(booking_prepare_total[1h])
+
+  # ── Alerts ───────────────────────────────────────────────────────────────────
+
+alerts:
+
+  - name: "SupplierP95LatencyHigh"
+    condition: |
+      histogram_quantile(0.95, rate(supplier_search_duration_ms_bucket[5m])) > 6000
+    for: 2m
+    severity: warning
+    message: "Supplier {{ $labels.supplier_id }} P95 latency > 6 s for 2 min"
+
+  - name: "SupplierCircuitBreakerOpen"
+    condition: |
+      supplier_circuit_breaker_state == 2
+    for: 30s
+    severity: critical
+    message: "Circuit breaker OPEN for {{ $labels.supplier_id }}"
+
+  - name: "GdsLookToBookRatioHigh"
+    condition: |
+      (supplier_searches_total / supplier_bookings_total) > 500
+    for: 10m
+    severity: warning
+    message: "Look-to-book ratio > 500:1 for {{ $labels.supplier_id }} — check GDS contract"
+
+  - name: "APIErrorRateHigh"
+    condition: |
+      100 * sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 5
+    for: 1m
+    severity: critical
+    message: "API 5xx error rate > 5% for 1 min"
+
+  - name: "PaidButNotTicketed"
+    condition: |
+      bookings_total{state="PAID"} - bookings_total{state="TICKETED"} > 0
+    for: 5m
+    severity: critical
+    message: "Booking(s) in PAID state not yet TICKETED after 5 min — check reconciliation job"
