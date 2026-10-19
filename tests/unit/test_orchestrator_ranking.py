@@ -6,7 +6,6 @@ Includes property-based tests with hypothesis and hand-written best-value cases.
 from datetime import time
 from decimal import Decimal
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -22,8 +21,8 @@ from booking_agent.orchestrator.ranking import (
 )
 from tests.unit.offer_factory import make_offer
 
-
 # ── filter_offers ─────────────────────────────────────────────────────────────
+
 
 class TestFilterMaxStops:
     def test_allows_direct(self):
@@ -146,6 +145,7 @@ class TestFilterMaxPrice:
 
 # ── rank ──────────────────────────────────────────────────────────────────────
 
+
 class TestRankCheapest:
     def test_cheapest_first(self):
         offers = [
@@ -159,8 +159,8 @@ class TestRankCheapest:
         assert ranked[2].total_inr == Decimal("5000")
 
     def test_tiebreak_fewer_stops(self):
-        direct     = make_offer(total_inr=Decimal("3000"), n_segments=1, flight_number="101")
-        one_stop   = make_offer(total_inr=Decimal("3000"), n_segments=2, flight_number="202")
+        direct = make_offer(total_inr=Decimal("3000"), n_segments=1, flight_number="101")
+        one_stop = make_offer(total_inr=Decimal("3000"), n_segments=2, flight_number="202")
         prefs = RankingPreferences(sort_mode=SortMode.CHEAPEST)
         ranked = rank([one_stop, direct], prefs)
         assert ranked[0].slices[0].stops == 0
@@ -173,6 +173,18 @@ class TestRankFastest:
         prefs = RankingPreferences(sort_mode=SortMode.FASTEST)
         ranked = rank([slow, fast], prefs)
         assert ranked[0].slices[0].duration_minutes == 120
+
+    def test_long_layover_ranks_after_direct_of_similar_air_time(self):
+        # 1-stop: 180 min in the air but a 5 h layover → 480 min door to door.
+        one_stop = make_offer(
+            n_segments=2, duration_minutes=180, layover_minutes=300, flight_number="303"
+        )
+        # Direct: slightly more air time (200 min) but no layover.
+        direct = make_offer(duration_minutes=200, flight_number="404")
+        assert one_stop.slices[0].duration_minutes < direct.slices[0].duration_minutes
+        prefs = RankingPreferences(sort_mode=SortMode.FASTEST)
+        ranked = rank([one_stop, direct], prefs)
+        assert [o.offer_id for o in ranked] == [direct.offer_id, one_stop.offer_id]
 
 
 class TestRankBestValue:
@@ -217,7 +229,7 @@ class TestRankBestValue:
         assert ranked[0].fare_rules.refund.allowed is True
 
     def test_unknown_bag_less_penalty_than_no_bag(self):
-        no_bag  = make_offer(total_inr=Decimal("2000"), checked_pieces=0,      flight_number="101")
+        no_bag = make_offer(total_inr=Decimal("2000"), checked_pieces=0, flight_number="101")
         unk_bag = make_offer(total_inr=Decimal("2000"), checked_pieces=UNKNOWN, flight_number="202")
         prefs = RankingPreferences(
             sort_mode=SortMode.BEST_VALUE,
@@ -229,6 +241,7 @@ class TestRankBestValue:
 
 
 # ── explain ───────────────────────────────────────────────────────────────────
+
 
 class TestExplain:
     def _ranked(self, offers, sort_mode=SortMode.BEST_VALUE):
@@ -266,11 +279,23 @@ class TestExplain:
         assert RankHighlight.BAGS_INCLUDED not in ex.highlights
 
     def test_cheapest_highlight_on_lowest_price(self):
-        cheap     = make_offer(total_inr=Decimal("2000"), flight_number="101")
+        cheap = make_offer(total_inr=Decimal("2000"), flight_number="101")
         expensive = make_offer(total_inr=Decimal("5000"), flight_number="202")
         ranked, prefs = self._ranked([cheap, expensive], SortMode.CHEAPEST)
         ex = explain(cheap, prefs, rank_position=1, all_offers=ranked)
         assert RankHighlight.CHEAPEST in ex.highlights
+
+    def test_fastest_highlight_uses_journey_time(self):
+        one_stop = make_offer(
+            n_segments=2, duration_minutes=180, layover_minutes=300, flight_number="303"
+        )
+        direct = make_offer(duration_minutes=200, flight_number="404")
+        ranked, prefs = self._ranked([one_stop, direct], SortMode.FASTEST)
+        ex_direct = explain(direct, prefs, rank_position=1, all_offers=ranked)
+        ex_one_stop = explain(one_stop, prefs, rank_position=2, all_offers=ranked)
+        assert RankHighlight.FASTEST in ex_direct.highlights
+        assert RankHighlight.FASTEST not in ex_one_stop.highlights
+        assert ex_one_stop.total_duration_minutes == 480
 
     def test_most_flexible_highlight(self):
         flexible = make_offer(refundable=True, changeable=True)
@@ -301,13 +326,18 @@ class TestExplain:
 
 # ── property-based tests ──────────────────────────────────────────────────────
 
-_price_st    = st.decimals(min_value=Decimal("500"), max_value=Decimal("50000"),
-                            places=2, allow_nan=False, allow_infinity=False)
+_price_st = st.decimals(
+    min_value=Decimal("500"),
+    max_value=Decimal("50000"),
+    places=2,
+    allow_nan=False,
+    allow_infinity=False,
+)
 _sort_mode_st = st.sampled_from(list(SortMode))
-_flight_st   = st.sampled_from(["101", "202", "303", "404"])
-_fare_st     = st.sampled_from(["YOWCHIN", "KFLX", "TSAVER"])
-_bag_st      = st.sampled_from([0, 1, None, UNKNOWN])
-_refund_st   = st.sampled_from([True, False, UNKNOWN])
+_flight_st = st.sampled_from(["101", "202", "303", "404"])
+_fare_st = st.sampled_from(["YOWCHIN", "KFLX", "TSAVER"])
+_bag_st = st.sampled_from([0, 1, None, UNKNOWN])
+_refund_st = st.sampled_from([True, False, UNKNOWN])
 
 
 @st.composite

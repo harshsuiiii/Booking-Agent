@@ -7,9 +7,7 @@ streaming order, cross-source dedupe, tenant filtering, and metrics.
 import asyncio
 from datetime import date
 
-import pytest
-
-from booking_agent.connectors.errors import SupplierBadResponse, SupplierAuthError
+from booking_agent.connectors.errors import SupplierAuthError, SupplierBadResponse
 from booking_agent.connectors.fake import FakeConnector
 from booking_agent.domain.search import SearchQuery
 from booking_agent.orchestrator.circuit_breaker import CircuitBreaker, CircuitState
@@ -25,7 +23,7 @@ from booking_agent.orchestrator.search import SearchOrchestrator, TenantContext
 
 
 def _query() -> SearchQuery:
-    return SearchQuery(origin="DEL", destination="BOM", departure_date=date(2025, 9, 1))
+    return SearchQuery(origin="DEL", destination="BOM", departure_date=date(2027, 9, 1))
 
 
 def _fake(supplier_id: str = "fake", **kwargs) -> FakeConnector:
@@ -43,6 +41,7 @@ async def _collect(orch: SearchOrchestrator, query: SearchQuery | None = None):
 
 
 # ── basic fan-out ─────────────────────────────────────────────────────────────
+
 
 class TestFanOut:
     async def test_single_source_success(self):
@@ -87,6 +86,7 @@ class TestFanOut:
 
 # ── partial failure ───────────────────────────────────────────────────────────
 
+
 class TestPartialFailure:
     async def test_one_fails_other_succeeds(self):
         bad = _fake("bad", search_errors=[SupplierBadResponse("bad", 500, "err", "search")])
@@ -117,6 +117,7 @@ class TestPartialFailure:
 
 
 # ── timeout ───────────────────────────────────────────────────────────────────
+
 
 class TestTimeout:
     async def test_slow_source_times_out(self):
@@ -152,11 +153,12 @@ class TestTimeout:
 
 # ── circuit breaker ───────────────────────────────────────────────────────────
 
+
 class TestCircuitBreaker:
     async def test_breaker_opens_after_n_failures(self):
-        connector = _fake("a", search_errors=[
-            SupplierBadResponse("a", 500, "err", "search") for _ in range(5)
-        ])
+        connector = _fake(
+            "a", search_errors=[SupplierBadResponse("a", 500, "err", "search") for _ in range(5)]
+        )
         breaker = CircuitBreaker("a", failure_threshold=3, recovery_timeout=60.0)
         orch = SearchOrchestrator([connector], circuit_breakers={"a": breaker})
 
@@ -203,6 +205,7 @@ class TestCircuitBreaker:
 
 
 # ── cancellation ─────────────────────────────────────────────────────────────
+
 
 class TestCancellation:
     async def test_cancellation_leaves_no_dangling_tasks(self):
@@ -253,6 +256,7 @@ class TestCancellation:
 
 # ── streaming order and dedupe ────────────────────────────────────────────────
 
+
 class TestStreamingDedupe:
     async def test_offers_partial_grows_over_time(self):
         """Each OffersPartial snapshot is a superset of the previous one."""
@@ -286,6 +290,7 @@ class TestStreamingDedupe:
 
 # ── tenant context ────────────────────────────────────────────────────────────
 
+
 class TestTenantContext:
     async def test_only_enabled_suppliers_called(self):
         a = _fake("a")
@@ -312,6 +317,7 @@ class TestTenantContext:
 
 
 # ── metrics ───────────────────────────────────────────────────────────────────
+
 
 class TestMetrics:
     async def test_success_recorded(self):

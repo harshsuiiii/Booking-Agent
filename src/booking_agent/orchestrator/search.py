@@ -4,24 +4,26 @@ normalized+deduped results as they arrive, and handles timeouts/failures cleanly
 """
 
 import asyncio
+import contextlib
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+import structlog
 
 from booking_agent.connectors.errors import (
     SupplierAuthError,
     SupplierBadResponse,
-    SupplierError,
     SupplierRateLimited,
     SupplierTimeout,
 )
 from booking_agent.connectors.protocol import Connector
 from booking_agent.domain.offer import Offer
 from booking_agent.domain.ranking import RankingPreferences
-from booking_agent.domain.search import SearchQuery
+from booking_agent.domain.search import JourneyType, SearchQuery
 from booking_agent.orchestrator.circuit_breaker import CircuitBreaker
-from booking_agent.orchestrator.dedupe import DedupeGroup, dedupe
+from booking_agent.orchestrator.dedupe import dedupe
 from booking_agent.orchestrator.events import (
     OffersPartial,
     SearchComplete,
@@ -32,7 +34,11 @@ from booking_agent.orchestrator.events import (
     SourceTimedOut,
 )
 from booking_agent.orchestrator.metrics import MetricsCollector
-from booking_agent.orchestrator.ranking import rank_groups
+from booking_agent.orchestrator.ranking import filter_config_from, filter_offers, rank_groups
+from booking_agent.rules.engine import apply_rules_batch
+from booking_agent.rules.model import Rule
+
+log = structlog.get_logger(__name__)
 
 
 @dataclass
@@ -77,8 +83,11 @@ class SearchOrchestrator:
         semaphores: dict[str, asyncio.Semaphore] | None = None,
         max_concurrent_per_supplier: int = 2,
         metrics: MetricsCollector | None = None,
+        default_rules: list[Rule] | None = None,
     ) -> None:
         self._connectors = list(connectors)
+        # Agency markup rules applied when a search doesn't pass its own.
+        self._default_rules = list(default_rules or [])
         self._prefs = ranking_preferences or RankingPreferences()
         self._supplier_timeout = supplier_timeout
         self._circuit_breakers: dict[str, CircuitBreaker] = dict(circuit_breakers or {})
@@ -93,10 +102,8 @@ class SearchOrchestrator:
 
     async def __aexit__(self, *args: object) -> None:
         for c in self._connectors:
-            try:
+            with contextlib.suppress(Exception):
                 await c.__aexit__(*args)
-            except Exception:
-                pass
 
     @property
     def metrics(self) -> MetricsCollector:
@@ -127,7 +134,11 @@ class SearchOrchestrator:
         self,
         query: SearchQuery,
         tenant_ctx: TenantContext | None = None,
+        rules: list[Rule] | None = None,
     ) -> AsyncGenerator[SearchEvent, None]:
+        started_at = time.monotonic()
+        rules = rules if rules is not None else self._default_rules
+        filter_cfg = filter_config_from(query.filters, query.legs)
         active = self._active_connectors(tenant_ctx)
         accumulated: list[Offer] = []
         succeeded: list[str] = []
@@ -140,6 +151,13 @@ class SearchOrchestrator:
         try:
             for connector in active:
                 sid = connector.capabilities.supplier_id
+                if (
+                    query.journey_type == JourneyType.MULTI_CITY
+                    and not connector.capabilities.supports_multi_city
+                ):
+                    skipped.append(sid)
+                    yield SourceSkipped(supplier_id=sid, reason="multi_city_unsupported")
+                    continue
                 if not self._breaker(sid).is_allowed():
                     skipped.append(sid)
                     yield SourceSkipped(supplier_id=sid, reason="circuit_open")
@@ -154,14 +172,12 @@ class SearchOrchestrator:
                 tasks[task] = (sid, time.monotonic())
                 yield SourceStarted(
                     supplier_id=sid,
-                    searched_at=datetime.now(timezone.utc),
+                    searched_at=datetime.now(UTC),
                 )
 
             pending = set(tasks)
             while pending:
-                done, pending = await asyncio.wait(
-                    pending, return_when=asyncio.FIRST_COMPLETED
-                )
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
                 for task in done:
                     sid, t0 = tasks[task]
                     latency_ms = (time.monotonic() - t0) * 1000
@@ -169,10 +185,20 @@ class SearchOrchestrator:
 
                     if exc is None:
                         offers: list[Offer] = task.result()
+                        if rules:
+                            tenant = tenant_ctx.tenant_id if tenant_ctx else "default"
+                            offers, _ = apply_rules_batch(offers, rules, tenant)
+                        offers = filter_offers(offers, filter_cfg)
                         accumulated.extend(offers)
                         succeeded.append(sid)
                         self._breaker(sid).record_success()
                         self._metrics.record_success(sid, latency_ms, len(offers))
+                        log.info(
+                            "search.supplier_done",
+                            supplier_id=sid,
+                            ms=round(latency_ms),
+                            offers=len(offers),
+                        )
                         groups = rank_groups(dedupe(accumulated), self._prefs)
                         yield OffersPartial(
                             supplier_id=sid,
@@ -213,5 +239,5 @@ class SearchOrchestrator:
             suppliers_failed=failed,
             suppliers_timed_out=timed_out,
             suppliers_skipped=skipped,
-            elapsed_seconds=time.monotonic(),
+            elapsed_seconds=time.monotonic() - started_at,
         )

@@ -1,10 +1,9 @@
 import asyncio
-import json
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
 from typing import Annotated, Any
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 
@@ -14,8 +13,10 @@ from booking_agent.api.models import (
     SearchSnapshot,
     SearchStarted,
 )
-from booking_agent.api.session import SearchSession, _serialize_group
-from booking_agent.connectors.errors import SupplierError
+from booking_agent.api.session import SearchSession
+from booking_agent.api.views import group_view
+from booking_agent.auth.principal import Principal, Role, get_principal
+from booking_agent.dashboard.recent_searches import RecentSearch, RecentSearchStore
 from booking_agent.orchestrator.events import (
     OffersPartial,
     SearchComplete,
@@ -26,12 +27,15 @@ from booking_agent.orchestrator.events import (
 )
 from booking_agent.orchestrator.search import TenantContext
 
+log = structlog.get_logger(__name__)
+
 router = APIRouter(prefix="/v1/search", tags=["search"])
 
 
 # ── event serialization ───────────────────────────────────────────────────────
 
-def _serialize_event(event: Any) -> dict[str, Any]:
+
+def _serialize_event(event: Any, role: Role) -> dict[str, Any]:
     if isinstance(event, SourceStarted):
         return {
             "type": "source_started",
@@ -43,7 +47,7 @@ def _serialize_event(event: Any) -> dict[str, Any]:
             "type": "offers_partial",
             "supplier_id": event.supplier_id,
             "offers_count": event.offers_count,
-            "groups": [_serialize_group(g) for g in event.groups],
+            "groups": [group_view(g, role) for g in event.groups],
         }
     if isinstance(event, SourceFailed):
         return {"type": "source_failed", "supplier_id": event.supplier_id, "reason": event.reason}
@@ -62,7 +66,7 @@ def _serialize_event(event: Any) -> dict[str, Any]:
     if isinstance(event, SearchComplete):
         return {
             "type": "search_complete",
-            "groups": [_serialize_group(g) for g in event.groups],
+            "groups": [group_view(g, role) for g in event.groups],
             "suppliers_succeeded": event.suppliers_succeeded,
             "suppliers_failed": event.suppliers_failed,
             "suppliers_timed_out": event.suppliers_timed_out,
@@ -72,7 +76,20 @@ def _serialize_event(event: Any) -> dict[str, Any]:
     return {"type": "unknown"}
 
 
+async def _remember(request: Request, session: SearchSession, query: Any, offers: int) -> None:
+    store: RecentSearchStore | None = getattr(request.app.state, "recent_searches", None)
+    if store is None or not session.user_id:
+        return
+    try:
+        await store.add(
+            RecentSearch.from_query(query, session.tenant_id, session.user_id, "search", offers)
+        )
+    except Exception:  # history is best-effort; never fail a search over it
+        log.warning("recent_search_save_failed", search_id=session.search_id)
+
+
 # ── background search task ────────────────────────────────────────────────────
+
 
 async def _run_search(
     session: SearchSession,
@@ -87,20 +104,24 @@ async def _run_search(
     # Check cache first — serve a synthetic stream of one OffersPartial + SearchComplete
     cached = await cache.get(cache_key)
     if cached:
+        from booking_agent.domain.ranking import RankingPreferences
         from booking_agent.orchestrator.dedupe import dedupe
         from booking_agent.orchestrator.ranking import rank_groups
-        from booking_agent.domain.ranking import RankingPreferences
+
         groups = rank_groups(dedupe(cached), RankingPreferences())
+        await _remember(request, session, query_obj, len(groups))
         session.push({"type": "cache_hit", "offers_count": len(cached)})
-        session.push({
-            "type": "offers_partial",
-            "supplier_id": "cache",
-            "offers_count": len(cached),
-            "groups": [_serialize_group(g) for g in groups],
-        })
+        session.push(
+            {
+                "type": "offers_partial",
+                "supplier_id": "cache",
+                "offers_count": len(cached),
+                "groups": [group_view(g, session.role) for g in groups],
+            }
+        )
         complete_data = {
             "type": "search_complete",
-            "groups": [_serialize_group(g) for g in groups],
+            "groups": [group_view(g, session.role) for g in groups],
             "suppliers_succeeded": ["cache"],
             "suppliers_failed": [],
             "suppliers_timed_out": [],
@@ -111,29 +132,43 @@ async def _run_search(
         return
 
     # Live fan-out
-    accumulated_offers = []
     try:
         async for event in orch.search(query_obj, tenant_ctx):
-            session.push(_serialize_event(event))
-            if isinstance(event, OffersPartial):
-                for group in event.groups:
-                    accumulated_offers.extend([group.primary] + [])
-            elif isinstance(event, SearchComplete):
-                # Store in cache (best-effort; never blocks the stream)
-                if accumulated_offers:
+            if isinstance(event, SearchComplete):
+                # Store in cache (best-effort; never blocks the stream).
+                # Groups are the final deduped snapshot, so each offer appears once.
+                primaries = [g.primary for g in event.groups]
+                if primaries:
                     try:
-                        await cache.set(cache_key, accumulated_offers)
+                        await cache.set(cache_key, primaries)
                     except Exception:
-                        pass
-                complete_data = _serialize_event(event)
-                session.complete(event.groups, complete_data)
+                        log.warning("search_cache_set_failed", search_id=session.search_id)
+                await _remember(request, session, query_obj, len(event.groups))
+                # complete() emits the event; pushing it as well would send it twice.
+                session.complete(event.groups, _serialize_event(event, session.role))
                 return
+            session.push(_serialize_event(event, session.role))
     except Exception:
-        pass
+        log.exception("search_failed", search_id=session.search_id)
     session.complete([], {"type": "search_complete", "groups": [], "error": "internal"})
 
 
+def _own_session(request: Request, search_id: str, tenant: Tenant) -> SearchSession:
+    """The search, if the caller started it (results are serialized for their role)."""
+    principal: Principal = get_principal(request)
+    registry: dict[str, SearchSession] = request.app.state.search_registry
+    session = registry.get(search_id)
+    if (
+        session is None
+        or session.tenant_id != tenant.tenant_id
+        or session.user_id != principal.user_id
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
+    return session
+
+
 # ── routes ────────────────────────────────────────────────────────────────────
+
 
 @router.post("", response_model=SearchStarted, status_code=status.HTTP_202_ACCEPTED)
 async def start_search(
@@ -141,8 +176,9 @@ async def start_search(
     request: Request,
     tenant: Annotated[Tenant, Depends(get_tenant)],
 ) -> SearchStarted:
+    principal = get_principal(request)
     search_id = str(uuid.uuid4())
-    session = SearchSession(search_id, tenant.tenant_id)
+    session = SearchSession(search_id, tenant.tenant_id, principal.user_id, principal.role)
     request.app.state.search_registry[search_id] = session
 
     query_obj = body.to_query()
@@ -160,10 +196,7 @@ async def stream_search(
     request: Request,
     tenant: Annotated[Tenant, Depends(get_tenant)],
 ) -> StreamingResponse:
-    registry: dict[str, SearchSession] = request.app.state.search_registry
-    session = registry.get(search_id)
-    if session is None or session.tenant_id != tenant.tenant_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
+    session = _own_session(request, search_id, tenant)
 
     async def _sse_gen() -> AsyncGenerator[str, None]:
         async for line in session.event_stream():
@@ -179,42 +212,13 @@ async def get_snapshot(
     request: Request,
     tenant: Annotated[Tenant, Depends(get_tenant)],
 ) -> SearchSnapshot:
-    registry: dict[str, SearchSession] = request.app.state.search_registry
-    session = registry.get(search_id)
-    if session is None or session.tenant_id != tenant.tenant_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
-
-    from booking_agent.api.models import AlternateSourceOut, DedupeGroupOut, OfferOut
-
-    groups_out = [
-        DedupeGroupOut(
-            dedupe_key=g.dedupe_key,
-            primary=OfferOut(
-                offer_id=g.primary.offer_id,
-                supplier_id=g.primary.supplier_id,
-                total_inr=str(g.primary.total_inr),
-                fare_basis=g.primary.fare_basis,
-                fare_family=g.primary.fare_family,
-                expires_at=g.primary.expires_at,
-                raw=g.primary.model_dump(mode="json"),
-            ),
-            alternates=[
-                AlternateSourceOut(
-                    supplier_id=a.supplier_id,
-                    offer_id=a.offer_id,
-                    total_inr=str(a.total_inr),
-                )
-                for a in g.alternates
-            ],
-        )
-        for g in session.groups
-    ]
+    session = _own_session(request, search_id, tenant)
 
     return SearchSnapshot(
         search_id=search_id,
         tenant_id=session.tenant_id,
         is_complete=session.is_complete,
-        groups=groups_out,
+        groups=[group_view(g, session.role) for g in session.groups],
         suppliers_succeeded=session.suppliers_succeeded,
         suppliers_failed=session.suppliers_failed,
         suppliers_timed_out=session.suppliers_timed_out,
