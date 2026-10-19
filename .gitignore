@@ -12,3 +12,13 @@ build/
 venv/
 htmlcov/
 .coverage
+
+# Local SQLite database (demo)
+/data/
+
+# Local tooling output
+graphify-out/
+web/test-results/
+web/playwright-report/
+*.db
+*.sqlite3
