@@ -1,0 +1,708 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Booking Agent API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/search": {
+      "post": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Start Search",
+        "operationId": "start_search_v1_search_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchStarted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/{search_id}/stream": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Stream Search",
+        "operationId": "stream_search_v1_search__search_id__stream_get",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Search Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search/{search_id}": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Get Snapshot",
+        "operationId": "get_snapshot_v1_search__search_id__get",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Search Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/offers/{offer_id}/price": {
+      "post": {
+        "tags": [
+          "price"
+        ],
+        "summary": "Reprice Offer",
+        "operationId": "reprice_offer_v1_offers__offer_id__price_post",
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Offer Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PricedOfferOut"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PriceChangedOut"
+                    }
+                  ],
+                  "title": "Response Reprice Offer V1 Offers  Offer Id  Price Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Ready",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlternateSourceOut": {
+        "properties": {
+          "supplier_id": {
+            "type": "string",
+            "title": "Supplier Id"
+          },
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "total_inr": {
+            "type": "string",
+            "title": "Total Inr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_id",
+          "offer_id",
+          "total_inr"
+        ],
+        "title": "AlternateSourceOut"
+      },
+      "CabinClass": {
+        "type": "string",
+        "enum": [
+          "ECONOMY",
+          "PREMIUM_ECONOMY",
+          "BUSINESS",
+          "FIRST"
+        ],
+        "title": "CabinClass"
+      },
+      "DedupeGroupOut": {
+        "properties": {
+          "dedupe_key": {
+            "type": "string",
+            "title": "Dedupe Key"
+          },
+          "primary": {
+            "$ref": "#/components/schemas/OfferOut"
+          },
+          "alternates": {
+            "items": {
+              "$ref": "#/components/schemas/AlternateSourceOut"
+            },
+            "type": "array",
+            "title": "Alternates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dedupe_key",
+          "primary",
+          "alternates"
+        ],
+        "title": "DedupeGroupOut"
+      },
+      "DepartureWindow": {
+        "properties": {
+          "earliest": {
+            "type": "string",
+            "format": "time",
+            "title": "Earliest"
+          },
+          "latest": {
+            "type": "string",
+            "format": "time",
+            "title": "Latest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "earliest",
+          "latest"
+        ],
+        "title": "DepartureWindow"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "OfferOut": {
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "supplier_id": {
+            "type": "string",
+            "title": "Supplier Id"
+          },
+          "total_inr": {
+            "type": "string",
+            "title": "Total Inr"
+          },
+          "fare_basis": {
+            "type": "string",
+            "title": "Fare Basis"
+          },
+          "fare_family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fare Family"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "raw": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Raw"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offer_id",
+          "supplier_id",
+          "total_inr",
+          "fare_basis",
+          "fare_family",
+          "expires_at",
+          "raw"
+        ],
+        "title": "OfferOut"
+      },
+      "PaxCounts": {
+        "properties": {
+          "adults": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 1.0,
+            "title": "Adults",
+            "default": 1
+          },
+          "children": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 0.0,
+            "title": "Children",
+            "default": 0
+          },
+          "infants": {
+            "type": "integer",
+            "maximum": 9.0,
+            "minimum": 0.0,
+            "title": "Infants",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PaxCounts"
+      },
+      "PriceChangedOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "price_changed"
+          },
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "old_price_inr": {
+            "type": "string",
+            "title": "Old Price Inr"
+          },
+          "new_price_inr": {
+            "type": "string",
+            "title": "New Price Inr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offer_id",
+          "old_price_inr",
+          "new_price_inr"
+        ],
+        "title": "PriceChangedOut"
+      },
+      "PricedOfferOut": {
+        "properties": {
+          "priced_offer": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Priced Offer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "priced_offer"
+        ],
+        "title": "PricedOfferOut",
+        "description": "Re-price response; full priced_offer payload as dict."
+      },
+      "SearchFilters": {
+        "properties": {
+          "max_stops": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Stops"
+          },
+          "no_overnight_layover": {
+            "type": "boolean",
+            "title": "No Overnight Layover",
+            "default": false
+          },
+          "bags_included": {
+            "type": "boolean",
+            "title": "Bags Included",
+            "default": false
+          },
+          "refundable_only": {
+            "type": "boolean",
+            "title": "Refundable Only",
+            "default": false
+          },
+          "preferred_airlines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Preferred Airlines"
+          },
+          "departure_window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DepartureWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_layover_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Layover Minutes"
+          }
+        },
+        "type": "object",
+        "title": "SearchFilters"
+      },
+      "SearchRequest": {
+        "properties": {
+          "origin": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Origin"
+          },
+          "destination": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "title": "Destination"
+          },
+          "departure_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Departure Date"
+          },
+          "return_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Date"
+          },
+          "pax_counts": {
+            "$ref": "#/components/schemas/PaxCounts"
+          },
+          "cabin": {
+            "$ref": "#/components/schemas/CabinClass",
+            "default": "ECONOMY"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/SearchFilters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "origin",
+          "destination",
+          "departure_date"
+        ],
+        "title": "SearchRequest"
+      },
+      "SearchSnapshot": {
+        "properties": {
+          "search_id": {
+            "type": "string",
+            "title": "Search Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "is_complete": {
+            "type": "boolean",
+            "title": "Is Complete"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/DedupeGroupOut"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "suppliers_succeeded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suppliers Succeeded"
+          },
+          "suppliers_failed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suppliers Failed"
+          },
+          "suppliers_timed_out": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suppliers Timed Out"
+          }
+        },
+        "type": "object",
+        "required": [
+          "search_id",
+          "tenant_id",
+          "is_complete",
+          "groups",
+          "suppliers_succeeded",
+          "suppliers_failed",
+          "suppliers_timed_out"
+        ],
+        "title": "SearchSnapshot"
+      },
+      "SearchStarted": {
+        "properties": {
+          "search_id": {
+            "type": "string",
+            "title": "Search Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Search started"
+          }
+        },
+        "type": "object",
+        "required": [
+          "search_id"
+        ],
+        "title": "SearchStarted"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
