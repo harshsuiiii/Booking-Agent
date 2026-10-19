@@ -1,0 +1,111 @@
+iata,name,city,country,region,lat,lon,tz
+ADD,Addis Ababa Bole International Airport,Addis Ababa,ET,AFR,8.9779,38.7993,Africa/Addis_Ababa
+AMD,Sardar Vallabh Patel International Airport,Ahmedabad,IN,IN,23.0772,72.6347,Asia/Kolkata
+AMS,Amsterdam Airport Schiphol,Amsterdam,NL,EUR,52.3086,4.7639,Europe/Amsterdam
+ATL,Hartsfield Jackson Atlanta International Airport,Atlanta,US,NAM,33.6367,-84.4281,America/New_York
+ATQ,Sri Guru Ram Das Ji International Airport,Amritsar,IN,IN,31.7096,74.7973,Asia/Kolkata
+AUH,Zayed International Airport,Abu Dhabi,AE,GULF,24.441,54.6492,Asia/Dubai
+BAH,Bahrain International Airport,Manama,BH,GULF,26.2673,50.6376,Asia/Bahrain
+BBI,Biju Patnaik International Airport,Bhubaneswar,IN,IN,20.251,85.8147,Asia/Kolkata
+BCN,Josep Tarradellas Barcelona-El Prat Airport,Barcelona,ES,EUR,41.2971,2.0785,Europe/Madrid
+BDQ,Vadodara International Airport,Vadodara,IN,IN,22.3362,73.2263,Asia/Kolkata
+BHO,Raja Bhoj International Airport,Bhopal,IN,IN,23.2875,77.3374,Asia/Kolkata
+BHX,Birmingham Airport,"Birmingham, West Midlands",GB,EUR,52.4539,-1.748,Europe/London
+BKK,Suvarnabhumi Airport,Bangkok,TH,SEA,13.6811,100.747,Asia/Bangkok
+BLR,Kempegowda International Airport Bengaluru,Bengaluru,IN,IN,13.1979,77.7063,Asia/Kolkata
+BOM,Chhatrapati Shivaji Maharaj International Airport,Mumbai,IN,IN,19.0887,72.8679,Asia/Kolkata
+BOS,Boston Logan International Airport,Boston,US,NAM,42.362,-71.0079,America/New_York
+CCJ,Calicut International Airport,Calicut,IN,IN,11.136,75.9552,Asia/Kolkata
+CCU,Netaji Subhash Chandra Bose International Airport,Kolkata,IN,IN,22.654,88.4476,Asia/Kolkata
+CDG,Charles de Gaulle International Airport,"Paris (Roissy-en-France, Val-d'Oise)",FR,EUR,49.009,2.5541,Europe/Paris
+CGK,Soekarno-Hatta International Airport,Jakarta,ID,SEA,-6.1256,106.656,Asia/Jakarta
+CJB,Coimbatore International Airport,Coimbatore,IN,IN,11.03,77.0434,Asia/Kolkata
+CMB,Bandaranaike International Colombo Airport,Colombo,LK,SASIA,7.1808,79.8841,Asia/Colombo
+COK,Cochin International Airport,Kochi,IN,IN,10.151,76.4008,Asia/Kolkata
+DAC,Hazrat Shahjalal International Airport,Dhaka,BD,SASIA,23.8433,90.3978,Asia/Dhaka
+DED,Dehradun Jolly Grant Airport,Dehradun (Jauligrant),IN,IN,30.1892,78.1767,Asia/Kolkata
+DEL,Indira Gandhi International Airport,New Delhi,IN,IN,28.5556,77.0952,Asia/Kolkata
+DFW,Dallas Fort Worth International Airport,Dallas-Fort Worth,US,NAM,32.8968,-97.038,America/Chicago
+DIB,Dibrugarh Airport,Dibrugarh,IN,IN,27.4839,95.0169,Asia/Kolkata
+DMK,Don Mueang International Airport,Bangkok,TH,SEA,13.9126,100.607,Asia/Bangkok
+DMM,King Fahd International Airport,Ad Dammam,SA,GULF,26.4691,49.7982,Asia/Riyadh
+DOH,Hamad International Airport,Doha,QA,GULF,25.2731,51.6081,Asia/Qatar
+DPS,Denpasar I Gusti Ngurah Rai International Airport,"Kuta, Badung",ID,SEA,-8.7484,115.1671,Asia/Makassar
+DXB,Dubai International Airport,Dubai,AE,GULF,25.2498,55.371,Asia/Dubai
+EWR,Newark Liberty International Airport,Newark,US,NAM,40.6894,-74.1705,America/New_York
+FCO,Rome–Fiumicino Leonardo da Vinci International Airport,Rome,IT,EUR,41.8045,12.252,Europe/Rome
+FRA,Frankfurt Main Airport,Frankfurt am Main,DE,EUR,50.0267,8.5584,Europe/Berlin
+GAU,Lokpriya Gopinath Bordoloi International Airport,Guwahati,IN,IN,26.1067,91.5852,Asia/Kolkata
+GAY,Gaya Airport,Gaya,IN,IN,24.7443,84.9512,Asia/Kolkata
+GOI,Goa Dabolim International Airport,Vasco da Gama,IN,IN,15.3801,73.8333,Asia/Kolkata
+GOX,Manohar International Airport,Mopa,IN,IN,15.7443,73.8606,Asia/Kolkata
+HAN,Noi Bai International Airport,Hanoi (Soc Son),VN,SEA,21.2212,105.807,Asia/Ho_Chi_Minh
+HEL,Helsinki Vantaa Airport,Helsinki (Vantaa),FI,EUR,60.3184,24.9633,Europe/Helsinki
+HKG,Hong Kong International Airport,Hong Kong,HK,EASIA,22.3118,113.9149,Asia/Hong_Kong
+HKT,Phuket International Airport,Phuket,TH,SEA,8.1133,98.3174,Asia/Bangkok
+HSR,Rajkot International Airport,Rajkot,IN,IN,22.3788,71.0394,Asia/Kolkata
+HYD,Rajiv Gandhi International Airport,Hyderabad,IN,IN,17.2313,78.4299,Asia/Kolkata
+IAD,Washington Dulles International Airport,Dulles,US,NAM,38.9445,-77.4558,America/New_York
+IAH,George Bush Intercontinental Airport,Houston,US,NAM,29.9844,-95.3414,America/Chicago
+ICN,Incheon International Airport,Seoul,KR,EASIA,37.4691,126.451,Asia/Seoul
+IDR,Devi Ahilya Bai Holkar International Airport,Indore,IN,IN,22.7214,75.8005,Asia/Kolkata
+IST,İstanbul Airport,Istanbul,TR,EUR,41.2749,28.7321,Europe/Istanbul
+IXA,Agartala - Maharaja Bir Bikram Airport,Agartala,IN,IN,23.887,91.2404,Asia/Kolkata
+IXB,Bagdogra Airport,Siliguri,IN,IN,26.6812,88.3286,Asia/Kolkata
+IXC,Shaheed Bhagat Singh International Airport,Chandigarh,IN,IN,30.6735,76.7885,Asia/Kolkata
+IXE,Mangaluru International Airport,Mangaluru,IN,IN,12.9547,74.8868,Asia/Kolkata
+IXJ,Jammu Airport,Jammu,IN,IN,32.6888,74.8382,Asia/Kolkata
+IXL,Leh Kushok Bakula Rimpochee Airport,Leh,IN,IN,34.1359,77.5465,Asia/Kolkata
+IXM,Madurai Airport,Madurai,IN,IN,9.8345,78.0934,Asia/Kolkata
+IXR,Birsa Munda Airport,Ranchi,IN,IN,23.3143,85.3217,Asia/Kolkata
+IXU,Aurangabad Airport,Aurangabad,IN,IN,19.8629,75.3963,Asia/Kolkata
+IXZ,Veer Savarkar International Airport / INS Utkrosh,Port Blair,IN,IN,11.6402,92.729,Asia/Kolkata
+JAI,Jaipur International Airport,Jaipur,IN,IN,26.8242,75.8122,Asia/Kolkata
+JDH,Jodhpur Airport,Jodhpur,IN,IN,26.2511,73.0489,Asia/Kolkata
+JED,King Abdulaziz International Airport,Jeddah,SA,GULF,21.6802,39.1574,Asia/Riyadh
+JFK,John F. Kennedy International Airport,New York,US,NAM,40.6394,-73.7793,America/New_York
+JNB,O.R. Tambo International Airport,Johannesburg,ZA,AFR,-26.1401,28.2468,Africa/Johannesburg
+KTM,Tribhuvan International Airport,Kathmandu,NP,SASIA,27.6966,85.3591,Asia/Kathmandu
+KUL,Kuala Lumpur International Airport,Sepang,MY,SEA,2.7456,101.71,Asia/Kuala_Lumpur
+KWI,Kuwait International Airport,Kuwait City,KW,GULF,29.2245,47.9698,Asia/Kuwait
+LAX,Los Angeles International Airport,Los Angeles,US,NAM,33.9425,-118.408,America/Los_Angeles
+LGW,London Gatwick Airport,London,GB,EUR,51.1487,-0.1857,Europe/London
+LHR,London Heathrow Airport,London,GB,EUR,51.4707,-0.4599,Europe/London
+LKO,Chaudhary Charan Singh International Airport,Lucknow,IN,IN,26.7606,80.8893,Asia/Kolkata
+MAA,Chennai International Airport,Chennai,IN,IN,12.99,80.1693,Asia/Kolkata
+MAD,Adolfo Suárez Madrid–Barajas Airport,Madrid,ES,EUR,40.4934,-3.5722,Europe/Madrid
+MAN,Manchester Airport,"Manchester, Greater Manchester",GB,EUR,53.3494,-2.2795,Europe/London
+MCT,Muscat International Airport,Muscat/Seeb,OM,GULF,23.6002,58.2853,Asia/Muscat
+MEL,Melbourne Airport,Melbourne,AU,OCE,-37.6707,144.8379,Australia/Melbourne
+MLE,Velana International Airport,Malé,MV,SASIA,4.1918,73.5291,Indian/Maldives
+MNL,Ninoy Aquino International Airport,Manila (Pasay),PH,SEA,14.5086,121.02,Asia/Manila
+MUC,Munich Airport,Munich,DE,EUR,48.3538,11.7861,Europe/Berlin
+MXP,Milan Malpensa International Airport,Ferno (VA),IT,EUR,45.6306,8.7281,Europe/Rome
+NAG,Dr. Babasaheb Ambedkar International Airport,Nagpur,IN,IN,21.0922,79.0472,Asia/Kolkata
+NBO,Jomo Kenyatta International Airport,Nairobi,KE,AFR,-1.3189,36.9282,Africa/Nairobi
+NRT,Narita International Airport,Narita,JP,EASIA,35.7686,140.3887,Asia/Tokyo
+ORD,Chicago O'Hare International Airport,Chicago,US,NAM,41.9786,-87.9048,America/Chicago
+PAT,Jay Prakash Narayan Airport,Patna,IN,IN,25.5913,85.088,Asia/Kolkata
+PNQ,Pune International Airport,Pune,IN,IN,18.5821,73.9197,Asia/Kolkata
+PVG,Shanghai Pudong International Airport,Shanghai (Pudong),CN,EASIA,31.1434,121.805,Asia/Shanghai
+RPR,Swami Vivekananda Airport,Raipur,IN,IN,21.1804,81.7388,Asia/Kolkata
+RUH,King Khalid International Airport,Riyadh,SA,GULF,24.9576,46.6988,Asia/Riyadh
+SEA,Seattle–Tacoma International Airport,Seattle,US,NAM,47.4479,-122.3103,America/Los_Angeles
+SFO,San Francisco International Airport,San Francisco,US,NAM,37.6198,-122.3748,America/Los_Angeles
+SGN,Tan Son Nhat International Airport,Ho Chi Minh City,VN,SEA,10.8188,106.652,Asia/Ho_Chi_Minh
+SHJ,Sharjah International Airport,Sharjah,AE,GULF,25.3286,55.5172,Asia/Dubai
+SIN,Singapore Changi Airport,Singapore,SG,SEA,1.3502,103.994,Asia/Singapore
+STV,Surat International Airport,Surat,IN,IN,21.1155,72.7433,Asia/Kolkata
+SXR,Srinagar International Airport,Srinagar,IN,IN,33.9871,74.7742,Asia/Kolkata
+SYD,Sydney Kingsford Smith International Airport,Sydney (Mascot),AU,OCE,-33.9461,151.177,Australia/Sydney
+TIR,Tirupati International Airport,Tirupati,IN,IN,13.632,79.5399,Asia/Kolkata
+TRV,Thiruvananthapuram International Airport,Thiruvananthapuram,IN,IN,8.4819,76.92,Asia/Kolkata
+TRZ,Tiruchirappalli International Airport,Tiruchirappalli,IN,IN,10.7629,78.7177,Asia/Kolkata
+UDR,Maharana Pratap Airport,Udaipur,IN,IN,24.6177,73.8961,Asia/Kolkata
+VGA,Vijayawada International Airport,Vijayawada,IN,IN,16.53,80.8049,Asia/Kolkata
+VIE,Vienna International Airport,Vienna,AT,EUR,48.1103,16.5697,Europe/Vienna
+VNS,Lal Bahadur Shastri International Airport,Varanasi,IN,IN,25.4522,82.8625,Asia/Kolkata
+VTZ,Alluri Sitarama Raju International Airport (Vizag),Visakhapatnam,IN,IN,17.9715,83.5036,Asia/Kolkata
+YVR,Vancouver International Airport,Vancouver,CA,NAM,49.1939,-123.184,America/Vancouver
+YYZ,Toronto Pearson International Airport,Toronto,CA,NAM,43.6759,-79.6294,America/Toronto
+ZRH,Zürich Airport,Zurich,CH,EUR,47.4581,8.5481,Europe/Zurich
