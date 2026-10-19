@@ -277,10 +277,11 @@ def create_app(
             _client = GeminiClientAdapter(api_key=gemini_key)
             _model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
             _provider = "Gemini"
-        elif anthropic_key:
+        elif anthropic_key and os.getenv("ANTHROPIC_MODEL"):
             import anthropic  # optional dependency
 
             _client = anthropic.AsyncAnthropic()
+            _model = os.environ["ANTHROPIC_MODEL"]
             _provider = "Anthropic"
 
     app.state.llm_provider = _provider
