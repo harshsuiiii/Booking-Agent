@@ -1,0 +1,81 @@
+{
+  "data": {
+    "id": "orr_0000AuzFnPbflPXiD0ZZZ1",
+    "live_mode": false,
+    "offers": [
+      {
+        "id": "off_0000AuzFnPbflPXiD0ZZZ2",
+        "live_mode": false,
+        "owner": {
+          "iata_code": "ZZ",
+          "name": "Duffel Airways"
+        },
+        "cabin_class": "economy",
+        "fare_brand_name": null,
+        "slices": [
+          {
+            "id": "sli_0000AuzFnPbflPXiD0ZZZ3",
+            "origin": {
+              "iata_code": "LHR"
+            },
+            "destination": {
+              "iata_code": "JFK"
+            },
+            "segments": [
+              {
+                "id": "seg_0000AuzFnPbflPXiD0ZZZ4",
+                "marketing_carrier": {
+                  "iata_code": "ZZ",
+                  "name": "Duffel Airways"
+                },
+                "marketing_carrier_flight_number": "201",
+                "operating_carrier": {
+                  "iata_code": "ZZ",
+                  "name": "Duffel Airways"
+                },
+                "origin": {
+                  "iata_code": "LHR"
+                },
+                "destination": {
+                  "iata_code": "JFK"
+                },
+                "departing_at": "2025-01-15T09:00:00+00:00",
+                "arriving_at": "2025-01-15T16:30:00-05:00",
+                "duration": "PT7H30M",
+                "aircraft": null,
+                "cabin_class": "economy",
+                "passengers": [
+                  {
+                    "passenger_id": "pas_0000AuzFnPbflPXiD0ZZZ5",
+                    "baggages": [
+                      {"type": "carry_on", "quantity": 1},
+                      {"type": "checked", "quantity": 0}
+                    ],
+                    "cabin_class": "economy",
+                    "fare_basis_code": "ZTEST"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "passengers": [
+          {
+            "id": "pas_0000AuzFnPbflPXiD0ZZZ5",
+            "type": "adult"
+          }
+        ],
+        "total_amount": "400.00",
+        "total_currency": "GBP",
+        "base_amount": "320.00",
+        "tax_amount": "80.00",
+        "conditions": {
+          "change_before_departure": null,
+          "refund_before_departure": null
+        },
+        "expires_at": "2025-01-10T12:00:00Z",
+        "created_at": "2025-01-10T11:00:00Z"
+      }
+    ]
+  }
+}

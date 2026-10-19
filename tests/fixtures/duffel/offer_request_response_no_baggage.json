@@ -1,0 +1,75 @@
+{
+  "data": {
+    "id": "orr_0000AuzFnPbflPXiD0NB01",
+    "live_mode": false,
+    "offers": [
+      {
+        "id": "off_0000AuzFnPbflPXiD0NB02",
+        "live_mode": false,
+        "owner": {
+          "iata_code": "SG",
+          "name": "SpiceJet"
+        },
+        "cabin_class": "economy",
+        "fare_brand_name": null,
+        "slices": [
+          {
+            "id": "sli_0000AuzFnPbflPXiD0NB03",
+            "origin": {
+              "iata_code": "BOM"
+            },
+            "destination": {
+              "iata_code": "DEL"
+            },
+            "segments": [
+              {
+                "id": "seg_0000AuzFnPbflPXiD0NB04",
+                "marketing_carrier": {
+                  "iata_code": "SG",
+                  "name": "SpiceJet"
+                },
+                "marketing_carrier_flight_number": "701",
+                "operating_carrier": {
+                  "iata_code": "SG",
+                  "name": "SpiceJet"
+                },
+                "origin": {
+                  "iata_code": "BOM"
+                },
+                "destination": {
+                  "iata_code": "DEL"
+                },
+                "departing_at": "2025-01-15T07:00:00+05:30",
+                "arriving_at": "2025-01-15T09:20:00+05:30",
+                "duration": "PT2H20M",
+                "aircraft": null,
+                "cabin_class": "economy",
+                "passengers": [
+                  {
+                    "passenger_id": "pas_0000AuzFnPbflPXiD0NB05",
+                    "baggages": [],
+                    "cabin_class": "economy",
+                    "fare_basis_code": "SOWLITE"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "passengers": [
+          {
+            "id": "pas_0000AuzFnPbflPXiD0NB05",
+            "type": "adult"
+          }
+        ],
+        "total_amount": "3200.00",
+        "total_currency": "INR",
+        "base_amount": "2500.00",
+        "tax_amount": "700.00",
+        "conditions": null,
+        "expires_at": "2025-01-10T12:00:00Z",
+        "created_at": "2025-01-10T11:00:00Z"
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "data": {
+    "id": "off_0000AuzFnPbflPXiD0QJME",
+    "live_mode": false,
+    "owner": {
+      "iata_code": "6E",
+      "name": "IndiGo"
+    },
+    "cabin_class": "economy",
+    "fare_brand_name": "IndiGo Saver",
+    "slices": [
+      {
+        "id": "sli_0000AuzFnPbflPXiD0QJMF",
+        "origin": {
+          "iata_code": "BOM"
+        },
+        "destination": {
+          "iata_code": "DEL"
+        },
+        "segments": [
+          {
+            "id": "seg_0000AuzFnPbflPXiD0QJMG",
+            "marketing_carrier": {
+              "iata_code": "6E",
+              "name": "IndiGo"
+            },
+            "marketing_carrier_flight_number": "2104",
+            "operating_carrier": {
+              "iata_code": "6E",
+              "name": "IndiGo"
+            },
+            "origin": {
+              "iata_code": "BOM"
+            },
+            "destination": {
+              "iata_code": "DEL"
+            },
+            "departing_at": "2025-01-15T06:00:00+05:30",
+            "arriving_at": "2025-01-15T08:25:00+05:30",
+            "duration": "PT2H25M",
+            "aircraft": {
+              "iata_code": "32A",
+              "name": "Airbus A320neo"
+            },
+            "cabin_class": "economy",
+            "passengers": [
+              {
+                "passenger_id": "pas_0000AuzFnPbflPXiD0QJMH",
+                "baggages": [
+                  {"type": "carry_on", "quantity": 1},
+                  {"type": "checked", "quantity": 1}
+                ],
+                "cabin_class": "economy",
+                "fare_basis_code": "YOWFLEX"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "passengers": [
+      {
+        "id": "pas_0000AuzFnPbflPXiD0QJMH",
+        "type": "adult"
+      }
+    ],
+    "total_amount": "5240.00",
+    "total_currency": "INR",
+    "base_amount": "3960.00",
+    "tax_amount": "1280.00",
+    "conditions": {
+      "change_before_departure": {
+        "allowed": true,
+        "penalty_amount": "2000.00",
+        "penalty_currency": "INR"
+      },
+      "refund_before_departure": {
+        "allowed": false,
+        "penalty_amount": null,
+        "penalty_currency": null
+      }
+    },
+    "expires_at": "2025-01-10T12:30:00Z",
+    "created_at": "2025-01-10T11:00:00Z"
+  }
+}

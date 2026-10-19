@@ -1,0 +1,20 @@
+{
+  "data": {
+    "id": "ord_0000AuzFnPbflPXiD0QJMK",
+    "live_mode": false,
+    "booking_reference": "RZPNX8",
+    "created_at": "2025-01-10T11:05:00Z",
+    "passengers": [
+      {
+        "id": "pas_0000AuzFnPbflPXiD0QJMH",
+        "given_name": "Test",
+        "family_name": "Passenger",
+        "born_on": "1990-01-01",
+        "title": "mr",
+        "gender": "m",
+        "email": "booking@example.com",
+        "phone_number": "+919999999999"
+      }
+    ]
+  }
+}
