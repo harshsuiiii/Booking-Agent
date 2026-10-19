@@ -2,7 +2,15 @@
  * API access for the web app. Authentication is the httpOnly session cookie set by
  * /v1/auth/login, sent with `credentials: "include"`; the browser never sees a key.
  */
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+/**
+ * Where the API lives. Deployed, requests go to this site's own /v1/..., which
+ * next.config.ts forwards to the API (API_PROXY_URL), so they are same-origin and the
+ * session cookie just works. Locally, `next dev` talks to uvicorn on :8000.
+ * NEXT_PUBLIC_API_URL overrides both; don't set it in production.
+ */
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
 
 /** Error carrying the HTTP status, FastAPI `detail` (string or object) and auth `code`. */
 export class ApiError extends Error {

@@ -6,8 +6,9 @@ import type { NextRequest } from "next/server";
  * renders. The API still checks every request (expired or forged cookies get a 401,
  * which the app turns into a "please sign in again" redirect).
  *
- * The cookie is set by the API on localhost:8000; cookies ignore ports, so this app on
- * localhost:3000 sees it too. In production, serve the API on the same site.
+ * The cookie is set by the API. Locally that is localhost:8000 (cookies ignore ports, so
+ * localhost:3000 sees it); deployed, /v1 is forwarded to the API, so it is this site's.
+ * /v1 itself is skipped: API calls (login included) must reach the API untouched.
  */
 const SESSION_COOKIE = "ba_session";
 
@@ -23,5 +24,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|svg|ico|jpg|webp)$).*)"],
+  matcher: ["/((?!v1/|_next/static|_next/image|favicon.ico|.*\\.(?:png|svg|ico|jpg|webp)$).*)"],
 };

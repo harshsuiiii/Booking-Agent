@@ -50,7 +50,7 @@ function LoginForm() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Can't reach the server. Check that the API is running on port 8000.",
+          : "Can't reach the server. Check that the API is running.",
       );
       setBusy(null);
     }
@@ -174,7 +174,7 @@ function LoginForm() {
         )}
         {configError && (
           <p role="alert" className="mt-4 text-center text-sm text-red-700">
-            Can&apos;t reach the API. Start it on port 8000 and reload.
+            Can&apos;t reach the API. Check that it is running, then reload.
           </p>
         )}
       </div>
