@@ -5,6 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from booking_agent.api.auth import Tenant, get_tenant
 from booking_agent.api.models import PriceChangedOut, PricedOfferOut
 from booking_agent.api.session import SearchSession
+from booking_agent.api.views import offer_view
+from booking_agent.auth.principal import get_principal
+from booking_agent.booking.service import with_markup_of
 from booking_agent.connectors.errors import PriceChanged
 from booking_agent.domain.offer import Offer
 
@@ -40,12 +43,15 @@ async def reprice_offer(
             detail=f"No connector for supplier {offer.supplier_id}",
         )
 
+    role = get_principal(request).role
+    markup = offer.price.agency_markup
     try:
-        priced = await connector.price(offer)
-        return PricedOfferOut(priced_offer=priced.model_dump(mode="json"))
+        priced = with_markup_of(offer, await connector.price(offer))
+        return PricedOfferOut(priced_offer=offer_view(priced, role))
     except PriceChanged as exc:
+        # Customer-facing (sell) prices, so no role sees the supplier's net here.
         return PriceChangedOut(
             offer_id=offer_id,
-            old_price_inr=str(exc.old_price),
-            new_price_inr=str(exc.new_price),
+            old_price_inr=str(exc.old_price + markup),
+            new_price_inr=str(exc.new_price + markup),
         )
