@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -8,15 +7,15 @@ from booking_agent.domain.common import CabinClass, Carrier
 
 class Segment(BaseModel):
     marketing_carrier: Carrier
-    operating_carrier: Optional[Carrier] = None  # None = same as marketing
+    operating_carrier: Carrier | None = None  # None = same as marketing
     flight_number: str
     origin: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     destination: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     departure_at: datetime  # must be timezone-aware
-    arrival_at: datetime    # must be timezone-aware
+    arrival_at: datetime  # must be timezone-aware
     cabin_class: CabinClass
     booking_class: str = Field(max_length=2)  # RBD e.g. "Y", "K", "W"
-    aircraft_type: Optional[str] = None
+    aircraft_type: str | None = None
     duration_minutes: int = Field(gt=0)
     stops: int = Field(default=0, ge=0)  # technical stops (not connections)
 
@@ -34,6 +33,7 @@ class LayoverInfo(BaseModel):
 
 class Slice(BaseModel):
     """One direction of travel (outbound or return). One or more connecting segments."""
+
     segments: list[Segment] = Field(min_length=1)
 
     @property
@@ -54,7 +54,17 @@ class Slice(BaseModel):
 
     @property
     def duration_minutes(self) -> int:
+        """Air time only: sum of segment flying times, excluding layovers."""
         return sum(s.duration_minutes for s in self.segments)
+
+    @property
+    def journey_minutes(self) -> int:
+        """Elapsed trip time, first departure to last arrival, layovers included.
+
+        Both timestamps are timezone-aware, so the difference is real elapsed time even
+        when origin and destination sit in different time zones.
+        """
+        return int((self.arrival_at - self.departure_at).total_seconds() // 60)
 
     @property
     def stops(self) -> int:

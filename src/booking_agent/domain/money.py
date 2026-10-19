@@ -30,6 +30,7 @@ class Money(BaseModel):
 
 class FxAudit(BaseModel):
     """Full audit trail for a currency conversion."""
+
     original_amount: Decimal
     original_currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     fx_rate: Decimal

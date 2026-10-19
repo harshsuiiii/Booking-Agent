@@ -2,6 +2,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+from booking_agent.connectors.payment import PaymentInstruction
 from booking_agent.domain.booking import Booking, Passenger
 from booking_agent.domain.offer import Offer, PricedOffer
 from booking_agent.domain.search import SearchQuery
@@ -37,6 +38,7 @@ class Connector(Protocol):
         priced_offer: PricedOffer,
         passengers: list[Passenger],
         idempotency_key: str,
+        payment: PaymentInstruction,
     ) -> Booking: ...
 
     async def __aenter__(self) -> "Connector": ...

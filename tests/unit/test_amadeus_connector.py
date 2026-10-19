@@ -4,7 +4,7 @@ All fixtures are SYNTHETIC — they are not from the live Amadeus API.
 """
 
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -20,6 +20,7 @@ from booking_agent.connectors.errors import (
     SupplierRateLimited,
     SupplierTimeout,
 )
+from booking_agent.connectors.payment import DuffelBalancePayment
 from booking_agent.connectors.secrets import EnvSecretsProvider
 from booking_agent.domain.booking import Passenger, PassengerType
 from booking_agent.domain.offer import Offer
@@ -44,7 +45,7 @@ def make_query() -> SearchQuery:
     return SearchQuery(
         origin="DEL",
         destination="BOM",
-        departure_date=date(2025, 9, 1),
+        departure_date=date(2027, 9, 1),
     )
 
 
@@ -71,11 +72,14 @@ def make_passenger() -> Passenger:
 
 # ── search: one-way ───────────────────────────────────────────────────────────
 
+
 class TestAmadeusSearch:
     @respx.mock
     async def test_one_way_returns_offer(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
@@ -88,21 +92,28 @@ class TestAmadeusSearch:
     @respx.mock
     async def test_round_trip_two_slices(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_round_trip.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_round_trip.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
-            offers = await c.search(SearchQuery(
-                origin="DEL", destination="BOM",
-                departure_date=date(2025, 9, 1),
-                return_date=date(2025, 9, 8),
-            ))
+            offers = await c.search(
+                SearchQuery(
+                    origin="DEL",
+                    destination="BOM",
+                    departure_date=date(2027, 9, 1),
+                    return_date=date(2027, 9, 8),
+                )
+            )
 
         assert len(offers[0].slices) == 2
 
     @respx.mock
     async def test_connecting_flight_two_segments(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_connecting.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_connecting.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
@@ -113,8 +124,11 @@ class TestAmadeusSearch:
     @respx.mock
     async def test_missing_baggage_is_unknown(self, monkeypatch):
         from booking_agent.domain._types import UNKNOWN
+
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_no_baggage.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_no_baggage.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
@@ -124,7 +138,9 @@ class TestAmadeusSearch:
     @respx.mock
     async def test_token_cached_across_calls(self, monkeypatch):
         token_route = respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             await c.search(make_query())
@@ -136,7 +152,9 @@ class TestAmadeusSearch:
     @respx.mock
     async def test_401_raises_auth_error(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(401, json={"errors": [{"title": "Unauthorized"}]}))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(401, json={"errors": [{"title": "Unauthorized"}]})
+        )
 
         async with fast_connector(monkeypatch) as c:
             with pytest.raises(SupplierAuthError):
@@ -145,9 +163,9 @@ class TestAmadeusSearch:
     @respx.mock
     async def test_429_raises_rate_limited(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(
-            429, json={}, headers={"Retry-After": "30"}
-        ))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(429, json={}, headers={"Retry-After": "30"})
+        )
 
         async with fast_connector(monkeypatch) as c:
             with pytest.raises(SupplierRateLimited) as exc_info:
@@ -179,14 +197,18 @@ class TestAmadeusSearch:
     @respx.mock
     async def test_malformed_response_raises(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json={"data": [{"bad": "payload"}]}))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json={"data": [{"bad": "payload"}]})
+        )
 
         async with fast_connector(monkeypatch) as c:
-            with pytest.raises(Exception):
+            # The mapper currently leaks a raw KeyError here, not SupplierBadResponse.
+            with pytest.raises(Exception):  # noqa: B017
                 await c.search(make_query())
 
 
 # ── auth: token refresh on 401 ────────────────────────────────────────────────
+
 
 class TestTokenRefresh:
     @respx.mock
@@ -201,14 +223,17 @@ class TestTokenRefresh:
             return httpx.Response(200, json=TOKEN_RESP)
 
         respx.post(TOKEN_URL).mock(side_effect=token_side_effect)
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             # Manually expire the token
             await c.search(make_query())
             from datetime import timedelta
+
             assert c._token_manager is not None
-            c._token_manager._expires_at = datetime.now(timezone.utc) - timedelta(seconds=120)
+            c._token_manager._expires_at = datetime.now(UTC) - timedelta(seconds=120)
             await c.search(make_query())
 
         assert call_count == 2  # token refreshed after expiry
@@ -216,13 +241,19 @@ class TestTokenRefresh:
 
 # ── price ─────────────────────────────────────────────────────────────────────
 
+
 class TestAmadeusPrice:
     @respx.mock
     async def test_price_returns_priced_offer(self, monkeypatch):
         from booking_agent.domain.offer import PricedOffer
+
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
-        respx.post(PRICE_URL).mock(return_value=httpx.Response(200, json=load("price_response.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
+        respx.post(PRICE_URL).mock(
+            return_value=httpx.Response(200, json=load("price_response.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
@@ -234,8 +265,12 @@ class TestAmadeusPrice:
     @respx.mock
     async def test_price_detects_price_change(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
-        respx.post(PRICE_URL).mock(return_value=httpx.Response(200, json=load("price_changed.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
+        respx.post(PRICE_URL).mock(
+            return_value=httpx.Response(200, json=load("price_changed.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
@@ -249,8 +284,12 @@ class TestAmadeusPrice:
     @respx.mock
     async def test_fare_rules_populated_from_detailed(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
-        respx.post(PRICE_URL).mock(return_value=httpx.Response(200, json=load("price_response.json")))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
+        respx.post(PRICE_URL).mock(
+            return_value=httpx.Response(200, json=load("price_response.json"))
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
@@ -262,46 +301,73 @@ class TestAmadeusPrice:
 
 # ── book ──────────────────────────────────────────────────────────────────────
 
+
 class TestAmadeusBook:
     @respx.mock
     async def test_book_returns_pnr(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
-        respx.post(PRICE_URL).mock(return_value=httpx.Response(200, json=load("price_response.json")))
-        respx.post(BOOK_URL).mock(return_value=httpx.Response(201, json={
-            "data": {
-                "type": "flight-order",
-                "id": "MlpZVkFMfFdBVFNPTnwyMDE1LTExLTAy",
-                "associatedRecords": [{"reference": "2ZYVAL", "originSystemCode": "GDS"}],
-                "flightOffers": [],
-                "travelers": []
-            }
-        }))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
+        respx.post(PRICE_URL).mock(
+            return_value=httpx.Response(200, json=load("price_response.json"))
+        )
+        respx.post(BOOK_URL).mock(
+            return_value=httpx.Response(
+                201,
+                json={
+                    "data": {
+                        "type": "flight-order",
+                        "id": "MlpZVkFMfFdBVFNPTnwyMDE1LTExLTAy",
+                        "associatedRecords": [{"reference": "2ZYVAL", "originSystemCode": "GDS"}],
+                        "flightOffers": [],
+                        "travelers": [],
+                    }
+                },
+            )
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
             priced = await c.price(offers[0])
-            booking = await c.book(priced, [make_passenger()], idempotency_key="idem-1")
+            booking = await c.book(
+                priced, [make_passenger()], idempotency_key="idem-1", payment=DuffelBalancePayment()
+            )
 
         from booking_agent.domain.booking import BookingState
+
         assert booking.pnr == "2ZYVAL"
         assert booking.state == BookingState.PNR_CREATED
 
     @respx.mock
     async def test_book_sends_idempotency_key(self, monkeypatch):
         respx.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESP))
-        respx.get(SEARCH_URL).mock(return_value=httpx.Response(200, json=load("search_one_way.json")))
-        respx.post(PRICE_URL).mock(return_value=httpx.Response(200, json=load("price_response.json")))
-        book_route = respx.post(BOOK_URL).mock(return_value=httpx.Response(201, json={
-            "data": {
-                "id": "ORDER_ID",
-                "associatedRecords": [{"reference": "PNR001", "originSystemCode": "GDS"}],
-            }
-        }))
+        respx.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=load("search_one_way.json"))
+        )
+        respx.post(PRICE_URL).mock(
+            return_value=httpx.Response(200, json=load("price_response.json"))
+        )
+        book_route = respx.post(BOOK_URL).mock(
+            return_value=httpx.Response(
+                201,
+                json={
+                    "data": {
+                        "id": "ORDER_ID",
+                        "associatedRecords": [{"reference": "PNR001", "originSystemCode": "GDS"}],
+                    }
+                },
+            )
+        )
 
         async with fast_connector(monkeypatch) as c:
             offers = await c.search(make_query())
             priced = await c.price(offers[0])
-            await c.book(priced, [make_passenger()], idempotency_key="unique-key-42")
+            await c.book(
+                priced,
+                [make_passenger()],
+                idempotency_key="unique-key-42",
+                payment=DuffelBalancePayment(),
+            )
 
         assert book_route.calls[0].request.headers.get("Idempotency-Key") == "unique-key-42"

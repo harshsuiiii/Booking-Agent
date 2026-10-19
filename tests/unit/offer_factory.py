@@ -3,13 +3,13 @@ Minimal Offer factory for unit tests.
 All times are UTC. All prices are Decimal. Keeps domain invariants valid.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
 from booking_agent.domain._types import UNKNOWN, Unknown
 from booking_agent.domain.common import CabinClass, Carrier
-from booking_agent.domain.itinerary import LayoverInfo, Segment, Slice
+from booking_agent.domain.itinerary import Segment, Slice
 from booking_agent.domain.offer import (
     BaggageAllowance,
     FareRulePolicy,
@@ -18,7 +18,7 @@ from booking_agent.domain.offer import (
     PriceBreakdown,
 )
 
-_BASE_DEP = datetime(2025, 9, 1, 6, 0, tzinfo=timezone.utc)
+_BASE_DEP = datetime(2025, 9, 1, 6, 0, tzinfo=UTC)
 
 
 def make_segment(

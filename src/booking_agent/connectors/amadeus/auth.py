@@ -6,7 +6,7 @@ token flood. Refreshes proactively 60 s before expiry.
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 
@@ -42,9 +42,7 @@ class TokenManager:
     def _is_valid(self) -> bool:
         if self._token is None or self._expires_at is None:
             return False
-        return datetime.now(timezone.utc) < self._expires_at - timedelta(
-            seconds=_REFRESH_BUFFER_SECONDS
-        )
+        return datetime.now(UTC) < self._expires_at - timedelta(seconds=_REFRESH_BUFFER_SECONDS)
 
     async def _fetch(self) -> None:
         response = await self._client.post(
@@ -61,6 +59,4 @@ class TokenManager:
         response.raise_for_status()
         body = response.json()
         self._token = body["access_token"]
-        self._expires_at = datetime.now(timezone.utc) + timedelta(
-            seconds=int(body["expires_in"])
-        )
+        self._expires_at = datetime.now(UTC) + timedelta(seconds=int(body["expires_in"]))

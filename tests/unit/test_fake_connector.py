@@ -3,7 +3,6 @@ Tests for FakeConnector — covers retry behavior, book-never-retried contract,
 timeout/error mapping, price drift, and secret redaction in logs.
 """
 
-import os
 from datetime import date
 from decimal import Decimal
 
@@ -18,18 +17,19 @@ from booking_agent.connectors.errors import (
     SupplierTimeout,
 )
 from booking_agent.connectors.fake import FakeConnector
+from booking_agent.connectors.payment import DuffelBalancePayment
 from booking_agent.connectors.secrets import EnvSecretsProvider
 from booking_agent.domain.offer import Offer, PricedOffer
 from booking_agent.domain.search import SearchQuery
-from tests.conftest import T_EXPIRE, AI
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
 
 def make_query(origin: str = "DEL", destination: str = "BOM") -> SearchQuery:
     return SearchQuery(
         origin=origin,
         destination=destination,
-        departure_date=date(2025, 9, 1),
+        departure_date=date(2027, 9, 1),
     )
 
 
@@ -42,6 +42,7 @@ def fast_connector(**kwargs) -> FakeConnector:
 
 
 # ── search: basic behavior ────────────────────────────────────────────────────
+
 
 class TestFakeConnectorSearch:
     async def test_returns_offer_list(self):
@@ -72,6 +73,7 @@ class TestFakeConnectorSearch:
 
 # ── retry behavior ────────────────────────────────────────────────────────────
 
+
 class TestRetryBehavior:
     async def test_search_retries_on_timeout_then_succeeds(self):
         errors = [
@@ -80,7 +82,7 @@ class TestRetryBehavior:
         ]
         async with fast_connector(search_errors=errors) as c:
             offers = await c.search(make_query())
-        assert c.search_call_count == 3   # 2 failures + 1 success
+        assert c.search_call_count == 3  # 2 failures + 1 success
         assert len(offers) == 1
 
     async def test_search_retries_on_rate_limited(self):
@@ -122,6 +124,7 @@ class TestRetryBehavior:
 
 # ── book is never retried ─────────────────────────────────────────────────────
 
+
 class TestBookNeverRetried:
     async def test_book_called_exactly_once_on_error(self):
         """
@@ -134,19 +137,22 @@ class TestBookNeverRetried:
         ) as c:
             offers = await c.search(make_query())
             priced = await c.price(offers[0])
-            from tests.conftest import AI
-            from booking_agent.domain.booking import Passenger, PassengerType
             from datetime import date
-            pax = [Passenger(
-                pax_type=PassengerType.ADULT,
-                given_name="Test",
-                family_name="User",
-                date_of_birth=date(1990, 1, 1),
-            )]
-            with pytest.raises(SoldOut):
-                await c.book(priced, pax, idempotency_key="idem-1")
 
-        assert c.book_call_count == 1   # never retried regardless of max_retries
+            from booking_agent.domain.booking import Passenger, PassengerType
+
+            pax = [
+                Passenger(
+                    pax_type=PassengerType.ADULT,
+                    given_name="Test",
+                    family_name="User",
+                    date_of_birth=date(1990, 1, 1),
+                )
+            ]
+            with pytest.raises(SoldOut):
+                await c.book(priced, pax, idempotency_key="idem-1", payment=DuffelBalancePayment())
+
+        assert c.book_call_count == 1  # never retried regardless of max_retries
 
     async def test_book_timeout_also_not_retried(self):
         async with fast_connector(
@@ -155,21 +161,26 @@ class TestBookNeverRetried:
         ) as c:
             offers = await c.search(make_query())
             priced = await c.price(offers[0])
-            from booking_agent.domain.booking import Passenger, PassengerType
             from datetime import date
-            pax = [Passenger(
-                pax_type=PassengerType.ADULT,
-                given_name="T",
-                family_name="U",
-                date_of_birth=date(1990, 1, 1),
-            )]
+
+            from booking_agent.domain.booking import Passenger, PassengerType
+
+            pax = [
+                Passenger(
+                    pax_type=PassengerType.ADULT,
+                    given_name="T",
+                    family_name="U",
+                    date_of_birth=date(1990, 1, 1),
+                )
+            ]
             with pytest.raises(SupplierTimeout):
-                await c.book(priced, pax, idempotency_key="idem-2")
+                await c.book(priced, pax, idempotency_key="idem-2", payment=DuffelBalancePayment())
 
         assert c.book_call_count == 1
 
 
 # ── price drift ───────────────────────────────────────────────────────────────
+
 
 class TestPriceDrift:
     async def test_price_drift_applied(self):
@@ -197,20 +208,27 @@ class TestPriceDrift:
 
 # ── successful book ───────────────────────────────────────────────────────────
 
+
 class TestSuccessfulBook:
     async def test_book_returns_booking(self):
-        from booking_agent.domain.booking import Booking, BookingState, Passenger, PassengerType
         from datetime import date
-        pax = [Passenger(
-            pax_type=PassengerType.ADULT,
-            given_name="Jane",
-            family_name="Doe",
-            date_of_birth=date(1990, 5, 15),
-        )]
+
+        from booking_agent.domain.booking import Booking, BookingState, Passenger, PassengerType
+
+        pax = [
+            Passenger(
+                pax_type=PassengerType.ADULT,
+                given_name="Jane",
+                family_name="Doe",
+                date_of_birth=date(1990, 5, 15),
+            )
+        ]
         async with fast_connector() as c:
             offers = await c.search(make_query())
             priced = await c.price(offers[0])
-            booking = await c.book(priced, pax, idempotency_key="key-123")
+            booking = await c.book(
+                priced, pax, idempotency_key="key-123", payment=DuffelBalancePayment()
+            )
         assert isinstance(booking, Booking)
         assert booking.state == BookingState.PNR_CREATED
         assert booking.pnr is not None
@@ -218,6 +236,7 @@ class TestSuccessfulBook:
 
 
 # ── secrets in logs ───────────────────────────────────────────────────────────
+
 
 class TestSecretsNotInLogs:
     async def test_env_secret_not_logged(self, monkeypatch):
@@ -255,6 +274,7 @@ class TestSecretsNotInLogs:
 
 # ── capabilities ──────────────────────────────────────────────────────────────
 
+
 class TestCapabilities:
     def test_supplier_id(self):
         c = FakeConnector()
@@ -262,5 +282,6 @@ class TestCapabilities:
 
     def test_satisfies_connector_protocol(self):
         from booking_agent.connectors.protocol import Connector
+
         c = FakeConnector()
         assert isinstance(c, Connector)

@@ -7,8 +7,8 @@ import asyncio
 from datetime import date
 from decimal import Decimal
 
-import pytest
 import fakeredis.aioredis
+import pytest
 
 from booking_agent.cache.search_cache import SearchCache
 from booking_agent.domain.search import SearchQuery
@@ -16,7 +16,7 @@ from tests.unit.offer_factory import make_offer
 
 
 def _query(origin: str = "DEL", dest: str = "BOM") -> SearchQuery:
-    return SearchQuery(origin=origin, destination=dest, departure_date=date(2025, 9, 1))
+    return SearchQuery(origin=origin, destination=dest, departure_date=date(2027, 9, 1))
 
 
 def _fake_redis() -> fakeredis.aioredis.FakeRedis:
@@ -24,6 +24,7 @@ def _fake_redis() -> fakeredis.aioredis.FakeRedis:
 
 
 # ── key generation ────────────────────────────────────────────────────────────
+
 
 class TestCacheKey:
     def test_same_inputs_same_key(self):
@@ -60,6 +61,7 @@ class TestCacheKey:
 
 
 # ── get / set / miss ──────────────────────────────────────────────────────────
+
 
 class TestCacheGetSet:
     async def test_miss_returns_none(self):
@@ -108,6 +110,7 @@ class TestCacheGetSet:
 
 # ── get_or_search ─────────────────────────────────────────────────────────────
 
+
 class TestGetOrSearch:
     async def test_miss_calls_factory(self):
         cache = SearchCache(_fake_redis())
@@ -155,6 +158,7 @@ class TestGetOrSearch:
 
 
 # ── coalescing ────────────────────────────────────────────────────────────────
+
 
 class TestCoalescing:
     async def test_concurrent_searches_share_one_fan_out(self):

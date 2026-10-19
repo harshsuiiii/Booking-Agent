@@ -5,15 +5,14 @@ Includes hand-written cases and property-based tests with hypothesis.
 
 from decimal import Decimal
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from booking_agent.orchestrator.dedupe import AlternateSource, DedupeGroup, dedupe
+from booking_agent.orchestrator.dedupe import AlternateSource, dedupe
 from tests.unit.offer_factory import make_offer
 
-
 # ── hand-written cases ────────────────────────────────────────────────────────
+
 
 class TestDedupeBasic:
     def test_empty_input(self):
@@ -29,18 +28,18 @@ class TestDedupeBasic:
     def test_two_identical_itinerary_different_suppliers(self):
         # Same flight, same fare → same dedupe_key
         a = make_offer(supplier_id="amadeus", total_inr=Decimal("3000"))
-        b = make_offer(supplier_id="sabre",   total_inr=Decimal("3200"))
+        b = make_offer(supplier_id="sabre", total_inr=Decimal("3200"))
         groups = dedupe([a, b])
         assert len(groups) == 1
         grp = groups[0]
-        assert grp.primary.supplier_id == "amadeus"   # cheaper is primary
+        assert grp.primary.supplier_id == "amadeus"  # cheaper is primary
         assert len(grp.alternates) == 1
         assert grp.alternates[0].supplier_id == "sabre"
         assert grp.alternates[0].total_inr == Decimal("3200")
 
     def test_cheaper_supplier_wins_primary(self):
         expensive = make_offer(supplier_id="amadeus", total_inr=Decimal("5000"))
-        cheap     = make_offer(supplier_id="sabre",   total_inr=Decimal("2500"))
+        cheap = make_offer(supplier_id="sabre", total_inr=Decimal("2500"))
         groups = dedupe([expensive, cheap])
         assert groups[0].primary.supplier_id == "sabre"
 
@@ -52,8 +51,8 @@ class TestDedupeBasic:
 
     def test_three_suppliers_same_flight(self):
         a = make_offer(supplier_id="amadeus", total_inr=Decimal("3000"))
-        b = make_offer(supplier_id="sabre",   total_inr=Decimal("3100"))
-        c = make_offer(supplier_id="gds3",    total_inr=Decimal("2900"))
+        b = make_offer(supplier_id="sabre", total_inr=Decimal("3100"))
+        c = make_offer(supplier_id="gds3", total_inr=Decimal("2900"))
         groups = dedupe([a, b, c])
         assert len(groups) == 1
         grp = groups[0]
@@ -62,7 +61,7 @@ class TestDedupeBasic:
 
     def test_alternate_source_fields(self):
         a = make_offer(supplier_id="amadeus", total_inr=Decimal("3000"))
-        b = make_offer(supplier_id="sabre",   total_inr=Decimal("3200"))
+        b = make_offer(supplier_id="sabre", total_inr=Decimal("3200"))
         grp = dedupe([a, b])[0]
         alt = grp.alternates[0]
         assert isinstance(alt, AlternateSource)
@@ -90,7 +89,7 @@ class TestDedupeBasic:
     def test_stable_tiebreak_by_offer_id(self):
         # Two offers with identical price — output should be deterministic
         a = make_offer(supplier_id="amadeus", total_inr=Decimal("3000"))
-        b = make_offer(supplier_id="sabre",   total_inr=Decimal("3000"))
+        b = make_offer(supplier_id="sabre", total_inr=Decimal("3000"))
         g1 = dedupe([a, b])
         g2 = dedupe([b, a])
         assert g1[0].primary.offer_id == g2[0].primary.offer_id
@@ -113,8 +112,8 @@ _price_st = st.decimals(
 )
 
 _supplier_st = st.sampled_from(["amadeus", "sabre", "gds3", "travelport"])
-_flight_st   = st.sampled_from(["101", "202", "303"])
-_fare_st     = st.sampled_from(["YOWCHIN", "KFLX", "TSAVER"])
+_flight_st = st.sampled_from(["101", "202", "303"])
+_fare_st = st.sampled_from(["YOWCHIN", "KFLX", "TSAVER"])
 
 
 @st.composite
@@ -176,5 +175,5 @@ def test_dedupe_deterministic(offers):
 def test_groups_cover_all_keys(offers):
     """Every dedupe_key in input appears exactly once in output."""
     expected_keys = {o.dedupe_key for o in offers}
-    actual_keys   = {g.dedupe_key for g in dedupe(offers)}
+    actual_keys = {g.dedupe_key for g in dedupe(offers)}
     assert expected_keys == actual_keys

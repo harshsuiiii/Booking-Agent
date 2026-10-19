@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Optional
 
 
 class SupplierError(Exception):
@@ -22,7 +21,7 @@ class SupplierAuthError(SupplierError):
 
 
 class SupplierRateLimited(SupplierError):
-    def __init__(self, supplier_id: str, retry_after: Optional[int] = None) -> None:
+    def __init__(self, supplier_id: str, retry_after: int | None = None) -> None:
         self.retry_after = retry_after
         detail = f", retry after {retry_after}s" if retry_after else ""
         super().__init__(supplier_id, f"rate limited{detail}")
@@ -68,3 +67,17 @@ class SoldOut(SupplierError):
     def __init__(self, supplier_id: str, offer_ref: str) -> None:
         self.offer_ref = offer_ref
         super().__init__(supplier_id, f"sold out: {offer_ref}")
+
+
+class BookingDisabled(SupplierError):
+    """
+    Raised by book() when live booking is not yet enabled.
+
+    In v1 only test-mode tokens (duffel_test_*) are allowed, and even then
+    BOOKING_LIVE_ENABLED must be true in non-test environments.  Step 11 will
+    collect customer payment via gateway before enabling live bookings.
+    """
+
+    def __init__(self, supplier_id: str, reason: str) -> None:
+        self.reason = reason
+        super().__init__(supplier_id, f"booking disabled: {reason}")

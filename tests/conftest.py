@@ -1,5 +1,14 @@
 """Shared fixtures for all test suites."""
-from datetime import datetime, timezone
+
+import os
+
+# Test-only auth settings, set before any app module reads them. Real values live in .env.
+os.environ.setdefault("API_KEY", "dev-key")
+os.environ.setdefault("API_KEY_TENANT", "default")
+os.environ.setdefault("AUTH_SECRET", "test-secret-not-for-production-0123456789")
+os.environ["DEMO_MODE"] = "false"
+
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -7,13 +16,18 @@ import pytest
 from booking_agent.domain.common import CabinClass, Carrier
 from booking_agent.domain.itinerary import Segment, Slice
 from booking_agent.domain.money import Money
-from booking_agent.domain.offer import BaggageAllowance, FareRulePolicy, FareRules, Offer, PriceBreakdown, TaxLine
-from booking_agent.domain._types import UNKNOWN
+from booking_agent.domain.offer import (
+    BaggageAllowance,
+    FareRulePolicy,
+    FareRules,
+    Offer,
+    PriceBreakdown,
+    TaxLine,
+)
 
-
-T0 = datetime(2025, 6, 1, 6, 0, tzinfo=timezone.utc)
-T1 = datetime(2025, 6, 1, 8, 30, tzinfo=timezone.utc)
-T_EXPIRE = datetime(2025, 6, 1, 7, 0, tzinfo=timezone.utc)
+T0 = datetime(2027, 6, 1, 6, 0, tzinfo=UTC)
+T1 = datetime(2027, 6, 1, 8, 30, tzinfo=UTC)
+T_EXPIRE = datetime(2027, 6, 1, 7, 0, tzinfo=UTC)
 
 AI = Carrier(iata_code="AI", name="Air India")
 

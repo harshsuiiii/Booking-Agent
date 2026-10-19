@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from booking_agent.domain.money import FxAudit, Money, to_inr
 
-FX_TS = datetime(2025, 6, 1, tzinfo=timezone.utc)
+FX_TS = datetime(2025, 6, 1, tzinfo=UTC)
 
 
 class TestMoney:
@@ -32,13 +32,17 @@ class TestMoney:
             Money(amount=Decimal("100"), currency="inr")
 
     def test_add_same_currency(self):
-        result = Money(amount=Decimal("100"), currency="INR") + Money(amount=Decimal("50"), currency="INR")
+        result = Money(amount=Decimal("100"), currency="INR") + Money(
+            amount=Decimal("50"), currency="INR"
+        )
         assert result.amount == Decimal("150")
         assert result.currency == "INR"
 
     def test_add_different_currency_raises(self):
         with pytest.raises(ValueError, match="Cannot add"):
-            Money(amount=Decimal("100"), currency="INR") + Money(amount=Decimal("1"), currency="USD")
+            Money(amount=Decimal("100"), currency="INR") + Money(
+                amount=Decimal("1"), currency="USD"
+            )
 
     def test_multiply(self):
         result = Money(amount=Decimal("100"), currency="INR") * Decimal("3")

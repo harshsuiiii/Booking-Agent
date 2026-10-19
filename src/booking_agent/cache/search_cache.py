@@ -13,7 +13,8 @@ then reads the cache.
 import asyncio
 import hashlib
 import json
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from redis.asyncio import Redis
 
@@ -23,17 +24,13 @@ from booking_agent.domain.search import SearchQuery
 _KEY_PREFIX = "search:"
 
 
-def _make_key(
-    query: SearchQuery, tenant_id: str, enabled_suppliers: list[str]
-) -> str:
+def _make_key(query: SearchQuery, tenant_id: str, enabled_suppliers: list[str]) -> str:
     payload = {
         "query": query.model_dump(mode="json"),
         "tenant_id": tenant_id,
         "suppliers": sorted(enabled_suppliers),
     }
-    digest = hashlib.sha256(
-        json.dumps(payload, sort_keys=True, default=str).encode()
-    ).hexdigest()
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
     return f"{_KEY_PREFIX}{digest}"
 
 
@@ -44,9 +41,7 @@ class SearchCache:
         # in-flight keys → asyncio.Event that is set when the search completes
         self._in_flight: dict[str, asyncio.Event] = {}
 
-    def make_key(
-        self, query: SearchQuery, tenant_id: str, enabled_suppliers: list[str]
-    ) -> str:
+    def make_key(self, query: SearchQuery, tenant_id: str, enabled_suppliers: list[str]) -> str:
         return _make_key(query, tenant_id, enabled_suppliers)
 
     async def get(self, key: str) -> list[Offer] | None:
@@ -57,9 +52,7 @@ class SearchCache:
         return [Offer.model_validate(o) for o in data]
 
     async def set(self, key: str, offers: list[Offer]) -> None:
-        payload = json.dumps(
-            [o.model_dump(mode="json") for o in offers], default=str
-        )
+        payload = json.dumps([o.model_dump(mode="json") for o in offers], default=str)
         await self._redis.set(key, payload, ex=self._ttl)
 
     async def get_or_search(

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Union
 
 from booking_agent.orchestrator.dedupe import DedupeGroup
 
@@ -34,7 +33,7 @@ class SourceTimedOut:
 @dataclass
 class SourceSkipped:
     supplier_id: str
-    reason: str  # "circuit_open"
+    reason: str  # "circuit_open" | "multi_city_unsupported"
 
 
 @dataclass
@@ -47,6 +46,6 @@ class SearchComplete:
     elapsed_seconds: float = 0.0
 
 
-SearchEvent = Union[
-    SourceStarted, OffersPartial, SourceFailed, SourceTimedOut, SourceSkipped, SearchComplete
-]
+SearchEvent = (
+    SourceStarted | OffersPartial | SourceFailed | SourceTimedOut | SourceSkipped | SearchComplete
+)

@@ -12,7 +12,8 @@ Provides:
 """
 
 import abc
-from typing import Any, Awaitable, Callable, Optional, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
 import httpx
 import structlog
@@ -24,12 +25,17 @@ from tenacity import (
     wait_exponential,
 )
 
-from booking_agent.connectors.errors import SupplierBadResponse, SupplierRateLimited, SupplierTimeout
+from booking_agent.connectors.errors import (
+    SupplierRateLimited,
+    SupplierTimeout,
+)
+from booking_agent.connectors.payment import PaymentInstruction
 from booking_agent.connectors.protocol import SupplierCapabilities
 from booking_agent.connectors.secrets import SecretsProvider
 from booking_agent.domain.booking import Booking, Passenger
 from booking_agent.domain.offer import Offer, PricedOffer
 from booking_agent.domain.search import SearchQuery
+from booking_agent.httpclient import ssl_context
 
 T = TypeVar("T")
 tracer = trace.get_tracer(__name__)
@@ -62,7 +68,7 @@ class BaseConnector(abc.ABC):
         max_retries: int = 3,
         retry_min_wait: float = 1.0,
         retry_max_wait: float = 10.0,
-        recorder: Optional[RecorderHook] = None,
+        recorder: RecorderHook | None = None,
     ) -> None:
         self._secrets = secrets
         self._timeout_seconds = timeout_seconds
@@ -70,10 +76,8 @@ class BaseConnector(abc.ABC):
         self._retry_min_wait = retry_min_wait
         self._retry_max_wait = retry_max_wait
         self._recorder = recorder
-        self._client: Optional[httpx.AsyncClient] = None
-        self._log = structlog.get_logger(__name__).bind(
-            supplier_id=self.capabilities.supplier_id
-        )
+        self._client: httpx.AsyncClient | None = None
+        self._log = structlog.get_logger(__name__).bind(supplier_id=self.capabilities.supplier_id)
 
     @property
     @abc.abstractmethod
@@ -82,7 +86,7 @@ class BaseConnector(abc.ABC):
     # ── async context manager ──────────────────────────────────────────────
 
     async def __aenter__(self) -> "BaseConnector":
-        self._client = httpx.AsyncClient(timeout=self._timeout_seconds)
+        self._client = httpx.AsyncClient(timeout=self._timeout_seconds, verify=ssl_context())
         await self._client.__aenter__()
         return self
 
@@ -125,6 +129,7 @@ class BaseConnector(abc.ABC):
         priced_offer: PricedOffer,
         passengers: list[Passenger],
         idempotency_key: str,
+        payment: PaymentInstruction,
     ) -> Booking:
         # Book is intentionally NOT retried at the connector layer.
         # GDS book calls create PNRs; retrying would create duplicate bookings.
@@ -134,9 +139,10 @@ class BaseConnector(abc.ABC):
                 "book.start",
                 offer_ref=priced_offer.supplier_offer_ref,
                 idempotency_key=idempotency_key,
+                payment_type=payment.payment_type,
             )
             try:
-                result = await self._do_book(priced_offer, passengers, idempotency_key)
+                result = await self._do_book(priced_offer, passengers, idempotency_key, payment)
                 self._log.info("book.complete", booking_id=result.booking_id)
                 return result
             except Exception as exc:
@@ -158,9 +164,7 @@ class BaseConnector(abc.ABC):
         - Calls the recorder hook with sanitized data (auth headers stripped)
         """
         if self._client is None:
-            raise RuntimeError(
-                f"{type(self).__name__} must be used as an async context manager"
-            )
+            raise RuntimeError(f"{type(self).__name__} must be used as an async context manager")
         try:
             response = await self._client.request(method, url, **kwargs)
         except httpx.TimeoutException as exc:
@@ -223,4 +227,5 @@ class BaseConnector(abc.ABC):
         priced_offer: PricedOffer,
         passengers: list[Passenger],
         idempotency_key: str,
+        payment: PaymentInstruction,
     ) -> Booking: ...

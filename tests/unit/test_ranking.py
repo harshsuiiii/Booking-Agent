@@ -1,26 +1,22 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-
-import pytest
 
 from booking_agent.domain._types import UNKNOWN
 from booking_agent.domain.common import CabinClass, Carrier
 from booking_agent.domain.itinerary import Segment, Slice
-from booking_agent.domain.money import Money
 from booking_agent.domain.offer import (
     BaggageAllowance,
     FareRulePolicy,
     FareRules,
     Offer,
     PriceBreakdown,
-    TaxLine,
 )
 from booking_agent.domain.ranking import RankingPreferences, effective_price
 
 AI = Carrier(iata_code="AI")
-T0 = datetime(2025, 6, 1, 6, 0, tzinfo=timezone.utc)
-T1 = datetime(2025, 6, 1, 8, 30, tzinfo=timezone.utc)
-T_EXPIRE = datetime(2025, 6, 1, 7, 0, tzinfo=timezone.utc)
+T0 = datetime(2025, 6, 1, 6, 0, tzinfo=UTC)
+T1 = datetime(2025, 6, 1, 8, 30, tzinfo=UTC)
+T_EXPIRE = datetime(2025, 6, 1, 7, 0, tzinfo=UTC)
 PREFS = RankingPreferences()
 
 
@@ -65,7 +61,7 @@ def bare_unknown_offer(total_inr: Decimal) -> Offer:
     return _offer(
         total_inr,
         baggage=BaggageAllowance(),  # all UNKNOWN
-        fare_rules=FareRules(),       # all UNKNOWN
+        fare_rules=FareRules(),  # all UNKNOWN
     )
 
 

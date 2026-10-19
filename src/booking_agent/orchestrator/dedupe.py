@@ -17,8 +17,9 @@ from booking_agent.domain.offer import Offer
 class AlternateSource:
     supplier_id: str
     offer_id: str
-    total_inr: Decimal
+    total_inr: Decimal  # net
     supplier_offer_ref: str
+    markup_inr: Decimal = Decimal("0")  # agency markup; sell = total_inr + markup_inr
 
 
 @dataclass
@@ -60,6 +61,7 @@ def dedupe(offers: list[Offer]) -> list[DedupeGroup]:
                 offer_id=o.offer_id,
                 total_inr=o.total_inr,
                 supplier_offer_ref=o.supplier_offer_ref,
+                markup_inr=o.price.agency_markup,
             )
             for o in sorted_offers[1:]
         ]

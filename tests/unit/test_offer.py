@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -7,21 +7,19 @@ from pydantic import ValidationError
 from booking_agent.domain._types import UNKNOWN
 from booking_agent.domain.common import CabinClass, Carrier
 from booking_agent.domain.itinerary import Segment, Slice
-from booking_agent.domain.money import Money
 from booking_agent.domain.offer import (
     BaggageAllowance,
     FareRulePolicy,
     FareRules,
     Offer,
-    PricedOffer,
     PriceBreakdown,
     TaxLine,
 )
 
 AI = Carrier(iata_code="AI")
-T0 = datetime(2025, 6, 1, 6, 0, tzinfo=timezone.utc)
-T1 = datetime(2025, 6, 1, 8, 30, tzinfo=timezone.utc)
-T_EXPIRE = datetime(2025, 6, 1, 7, 0, tzinfo=timezone.utc)
+T0 = datetime(2025, 6, 1, 6, 0, tzinfo=UTC)
+T1 = datetime(2025, 6, 1, 8, 30, tzinfo=UTC)
+T_EXPIRE = datetime(2025, 6, 1, 7, 0, tzinfo=UTC)
 
 
 def make_offer(**overrides) -> Offer:
@@ -198,8 +196,8 @@ class TestDedupeKey:
             flight_number="AI102",
             origin="DEL",
             destination="BOM",
-            departure_at=datetime(2025, 6, 1, 14, 0, tzinfo=timezone.utc),
-            arrival_at=datetime(2025, 6, 1, 16, 30, tzinfo=timezone.utc),
+            departure_at=datetime(2025, 6, 1, 14, 0, tzinfo=UTC),
+            arrival_at=datetime(2025, 6, 1, 16, 30, tzinfo=UTC),
             cabin_class=CabinClass.ECONOMY,
             booking_class="Y",
             duration_minutes=150,

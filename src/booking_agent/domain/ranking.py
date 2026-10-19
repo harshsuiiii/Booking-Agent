@@ -18,9 +18,10 @@ class RankingPreferences(BaseModel):
     Penalty values (in INR) applied when an offer is missing features.
     Penalties are added to total_inr so the effective price reflects true cost.
     """
-    no_bag_penalty: Decimal = Decimal("1500")      # add bag separately
+
+    no_bag_penalty: Decimal = Decimal("1500")  # add bag separately
     unknown_bag_penalty: Decimal = Decimal("750")  # half-penalty: uncertain
-    no_refund_penalty: Decimal = Decimal("500")    # non-refundable fare
+    no_refund_penalty: Decimal = Decimal("500")  # non-refundable fare
     unknown_refund_penalty: Decimal = Decimal("250")
     no_change_penalty: Decimal = Decimal("300")
     unknown_change_penalty: Decimal = Decimal("150")
@@ -54,7 +55,9 @@ def effective_price(
     checked = offer.baggage.checked_pieces
     if checked == UNKNOWN:
         adjustments.append(
-            AdjustmentItem(reason="Checked baggage not disclosed", amount=preferences.unknown_bag_penalty)
+            AdjustmentItem(
+                reason="Checked baggage not disclosed", amount=preferences.unknown_bag_penalty
+            )
         )
     elif checked is None or checked == 0:
         adjustments.append(
@@ -66,7 +69,9 @@ def effective_price(
     refund_allowed = offer.fare_rules.refund.allowed
     if refund_allowed == UNKNOWN:
         adjustments.append(
-            AdjustmentItem(reason="Refundability not disclosed", amount=preferences.unknown_refund_penalty)
+            AdjustmentItem(
+                reason="Refundability not disclosed", amount=preferences.unknown_refund_penalty
+            )
         )
     elif refund_allowed is False:
         adjustments.append(
@@ -77,7 +82,9 @@ def effective_price(
     change_allowed = offer.fare_rules.change.allowed
     if change_allowed == UNKNOWN:
         adjustments.append(
-            AdjustmentItem(reason="Changeability not disclosed", amount=preferences.unknown_change_penalty)
+            AdjustmentItem(
+                reason="Changeability not disclosed", amount=preferences.unknown_change_penalty
+            )
         )
     elif change_allowed is False:
         adjustments.append(

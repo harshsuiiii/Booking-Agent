@@ -4,7 +4,7 @@ All fixtures are synthetic and clearly marked as such.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -13,20 +13,20 @@ import pytest
 from booking_agent.connectors.amadeus.mapper import (
     decode_offer_ref,
     encode_offer_ref,
-    map_offer,
-    map_priced_offer,
     map_baggage,
     map_fare_rules,
+    map_offer,
     map_price_breakdown,
-    parse_duration_minutes,
+    map_priced_offer,
     parse_amadeus_datetime,
+    parse_duration_minutes,
 )
 from booking_agent.domain._types import UNKNOWN
 from booking_agent.domain.common import CabinClass
-from booking_agent.domain.offer import Offer, PricedOffer
+from booking_agent.domain.offer import PricedOffer
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "amadeus"
-SEARCHED_AT = datetime(2025, 9, 1, 3, 0, tzinfo=timezone.utc)
+SEARCHED_AT = datetime(2025, 9, 1, 3, 0, tzinfo=UTC)
 
 
 def load(name: str) -> dict:
@@ -34,6 +34,7 @@ def load(name: str) -> dict:
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 class TestParseDuration:
     def test_hours_and_minutes(self):
@@ -56,7 +57,7 @@ class TestParseDuration:
 class TestParseAmadeusDatetime:
     def test_no_timezone_gets_utc(self):
         dt = parse_amadeus_datetime("2025-09-01T06:00:00")
-        assert dt.tzinfo == timezone.utc
+        assert dt.tzinfo == UTC
         assert dt.year == 2025 and dt.month == 9 and dt.day == 1
 
     def test_with_offset_preserved(self):
@@ -87,6 +88,7 @@ class TestEncodeDecodeOfferRef:
 
 # ── baggage ───────────────────────────────────────────────────────────────────
 
+
 class TestMapBaggage:
     def test_one_checked_bag(self):
         fd = {"includedCheckedBags": {"quantity": 1}}
@@ -112,6 +114,7 @@ class TestMapBaggage:
 
 
 # ── price breakdown ───────────────────────────────────────────────────────────
+
 
 class TestMapPriceBreakdown:
     def test_yq_goes_to_fuel_surcharge(self):
@@ -161,6 +164,7 @@ class TestMapPriceBreakdown:
 
 # ── fare rules ────────────────────────────────────────────────────────────────
 
+
 class TestMapFareRules:
     def test_no_detailed_rules_uses_pricing_options(self):
         opts = {"refundableFare": True}
@@ -183,8 +187,16 @@ class TestMapFareRules:
 
     def test_detailed_rules_with_fee(self):
         rules = [
-            {"category": "REFUND", "notPermitted": False, "penalties": [{"amount": "3500.00", "currency": "INR"}]},
-            {"category": "EXCHANGE", "notPermitted": False, "penalties": [{"amount": "2000.00", "currency": "INR"}]},
+            {
+                "category": "REFUND",
+                "notPermitted": False,
+                "penalties": [{"amount": "3500.00", "currency": "INR"}],
+            },
+            {
+                "category": "EXCHANGE",
+                "notPermitted": False,
+                "penalties": [{"amount": "2000.00", "currency": "INR"}],
+            },
         ]
         fr = map_fare_rules({}, detailed_rules=rules)
         assert fr.refund.allowed is True
@@ -199,6 +211,7 @@ class TestMapFareRules:
 
 
 # ── one-way offer mapping ─────────────────────────────────────────────────────
+
 
 class TestMapOfferOneWay:
     def setup_method(self):
@@ -260,6 +273,7 @@ class TestMapOfferOneWay:
 
 # ── round-trip offer mapping ──────────────────────────────────────────────────
 
+
 class TestMapOfferRoundTrip:
     def setup_method(self):
         data = load("search_round_trip.json")
@@ -282,6 +296,7 @@ class TestMapOfferRoundTrip:
 
 
 # ── connecting flight (2 segments) ───────────────────────────────────────────
+
 
 class TestMapOfferConnecting:
     def setup_method(self):
@@ -308,6 +323,7 @@ class TestMapOfferConnecting:
 
 # ── missing baggage → UNKNOWN ─────────────────────────────────────────────────
 
+
 class TestMapOfferNoBaggage:
     def setup_method(self):
         data = load("search_no_baggage.json")
@@ -322,10 +338,11 @@ class TestMapOfferNoBaggage:
 
 # ── priced offer mapping ──────────────────────────────────────────────────────
 
+
 class TestMapPricedOffer:
     def setup_method(self):
         data = load("price_response.json")
-        priced_at = datetime(2025, 9, 1, 4, 0, tzinfo=timezone.utc)
+        priced_at = datetime(2025, 9, 1, 4, 0, tzinfo=UTC)
         raw = data["data"]["flightOffers"][0]
         rules = data["data"]["fareRules"]["rules"]
         self.priced = map_priced_offer(raw, rules, priced_at)
@@ -348,5 +365,6 @@ class TestMapPricedOffer:
         fee = self.priced.fare_rules.refund.fee
         assert fee is not None and fee != UNKNOWN
         from booking_agent.domain.money import Money
+
         assert isinstance(fee, Money)
         assert fee.amount == Decimal("3500")

@@ -9,7 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -22,8 +22,8 @@ from booking_agent.domain.offer import (
     FareRulePolicy,
     FareRules,
     Offer,
-    PricedOffer,
     PriceBreakdown,
+    PricedOffer,
     TaxLine,
 )
 
@@ -40,11 +40,10 @@ _CABIN_MAP: dict[str, CabinClass] = {
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+
 def parse_duration_minutes(iso: str) -> int:
     """Convert ISO 8601 duration (PT2H30M, P1DT10H) to total minutes."""
-    m = re.fullmatch(
-        r"P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso.strip()
-    )
+    m = re.fullmatch(r"P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso.strip())
     if not m:
         raise ValueError(f"Unparseable ISO 8601 duration: {iso!r}")
     days = int(m.group(1) or 0)
@@ -62,7 +61,7 @@ def parse_amadeus_datetime(s: str) -> datetime:
     """
     dt = datetime.fromisoformat(s)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -81,6 +80,7 @@ def decode_offer_ref(ref: str) -> dict[str, Any]:
 
 
 # ── segment / slice ───────────────────────────────────────────────────────────
+
 
 def map_segment(seg: dict[str, Any], fare_detail: dict[str, Any]) -> Segment:
     cabin_str = fare_detail.get("cabin", "ECONOMY")
@@ -107,13 +107,13 @@ def map_slice(
     fare_details_by_seg_id: dict[str, dict[str, Any]],
 ) -> Slice:
     segments = [
-        map_segment(seg, fare_details_by_seg_id.get(seg["id"], {}))
-        for seg in itinerary["segments"]
+        map_segment(seg, fare_details_by_seg_id.get(seg["id"], {})) for seg in itinerary["segments"]
     ]
     return Slice(segments=segments)
 
 
 # ── baggage ───────────────────────────────────────────────────────────────────
+
 
 def map_baggage(fare_detail: dict[str, Any]) -> BaggageAllowance:
     checked_raw = fare_detail.get("includedCheckedBags")
@@ -137,6 +137,7 @@ def map_baggage(fare_detail: dict[str, Any]) -> BaggageAllowance:
 
 
 # ── fare rules ────────────────────────────────────────────────────────────────
+
 
 def _map_rule_policy(rule: dict[str, Any] | None) -> FareRulePolicy:
     if rule is None:
@@ -181,13 +182,12 @@ def map_fare_rules(
         else:
             refund_allowed = UNKNOWN
 
-        if no_penalty_flag is True:
-            change_allowed = True
-        else:
-            change_allowed = UNKNOWN
+        change_allowed = True if no_penalty_flag is True else UNKNOWN
 
         return FareRules(
-            refund=FareRulePolicy(allowed=refund_allowed, fee=UNKNOWN if refund_allowed is True else None),
+            refund=FareRulePolicy(
+                allowed=refund_allowed, fee=UNKNOWN if refund_allowed is True else None
+            ),
             change=FareRulePolicy(allowed=change_allowed),
         )
 
@@ -201,6 +201,7 @@ def map_fare_rules(
 
 
 # ── price breakdown ───────────────────────────────────────────────────────────
+
 
 def map_price_breakdown(price: dict[str, Any]) -> PriceBreakdown:
     currency = price["currency"]
@@ -233,20 +234,16 @@ def map_price_breakdown(price: dict[str, Any]) -> PriceBreakdown:
 
 # ── offer ─────────────────────────────────────────────────────────────────────
 
+
 def map_offer(
     raw: dict[str, Any],
     searched_at: datetime,
 ) -> Offer:
     # Build a lookup from segmentId → fareDetail for the first traveler
     first_traveler = raw["travelerPricings"][0]
-    fare_details_by_seg_id = {
-        fd["segmentId"]: fd for fd in first_traveler["fareDetailsBySegment"]
-    }
+    fare_details_by_seg_id = {fd["segmentId"]: fd for fd in first_traveler["fareDetailsBySegment"]}
 
-    slices = [
-        map_slice(itin, fare_details_by_seg_id)
-        for itin in raw["itineraries"]
-    ]
+    slices = [map_slice(itin, fare_details_by_seg_id) for itin in raw["itineraries"]]
 
     # Use the first segment's fareDetail for offer-level fields
     first_fare_detail = first_traveler["fareDetailsBySegment"][0]
@@ -267,8 +264,11 @@ def map_offer(
     # lastTicketingDateTime (precise) > lastTicketingDate (date only)
     ltd = raw.get("lastTicketingDateTime") or raw.get("lastTicketingDate")
     if ltd:
-        expires_at = parse_amadeus_datetime(ltd) if "T" in ltd else \
-            datetime.fromisoformat(ltd).replace(hour=23, minute=59, tzinfo=timezone.utc)
+        expires_at = (
+            parse_amadeus_datetime(ltd)
+            if "T" in ltd
+            else datetime.fromisoformat(ltd).replace(hour=23, minute=59, tzinfo=UTC)
+        )
     else:
         expires_at = searched_at + timedelta(minutes=30)
 
@@ -299,8 +299,11 @@ def map_priced_offer(
 
     ltd = raw.get("lastTicketingDateTime") or raw.get("lastTicketingDate")
     if ltd:
-        valid_until = parse_amadeus_datetime(ltd) if "T" in ltd else \
-            datetime.fromisoformat(ltd).replace(hour=23, minute=59, tzinfo=timezone.utc)
+        valid_until = (
+            parse_amadeus_datetime(ltd)
+            if "T" in ltd
+            else datetime.fromisoformat(ltd).replace(hour=23, minute=59, tzinfo=UTC)
+        )
     else:
         valid_until = priced_at + timedelta(minutes=15)
 

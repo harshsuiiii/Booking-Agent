@@ -8,12 +8,13 @@ real network calls.
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from booking_agent.connectors.base import BaseConnector
-from booking_agent.connectors.errors import SoldOut, SupplierError, SupplierTimeout
+from booking_agent.connectors.errors import SupplierError
+from booking_agent.connectors.payment import PaymentInstruction
 from booking_agent.connectors.protocol import SupplierCapabilities
 from booking_agent.connectors.secrets import EnvSecretsProvider, SecretsProvider
 from booking_agent.domain.booking import Booking, BookingState, Passenger
@@ -24,8 +25,8 @@ from booking_agent.domain.offer import (
     FareRulePolicy,
     FareRules,
     Offer,
-    PricedOffer,
     PriceBreakdown,
+    PricedOffer,
     TaxLine,
 )
 from booking_agent.domain.search import SearchQuery
@@ -34,10 +35,8 @@ _FAKE_CARRIER = Carrier(iata_code="FX", name="Fake Airways")
 
 
 def _build_offer(query: SearchQuery, supplier_id: str, price_base: Decimal) -> Offer:
-    now = datetime.now(timezone.utc)
-    dep = datetime.combine(query.departure_date, datetime.min.time()).replace(
-        tzinfo=timezone.utc, hour=6
-    )
+    now = datetime.now(UTC)
+    dep = datetime.combine(query.departure_date, datetime.min.time()).replace(tzinfo=UTC, hour=6)
     arr = dep + timedelta(hours=2, minutes=30)
     seg = Segment(
         marketing_carrier=_FAKE_CARRIER,
@@ -68,6 +67,8 @@ def _build_offer(query: SearchQuery, supplier_id: str, price_base: Decimal) -> O
         total_inr=price_base + tax_sum,
         expires_at=now + timedelta(minutes=15),
         searched_at=now,
+        pax_count=query.pax_counts.total,
+        pax_counts=query.pax_counts,
     )
 
 
@@ -85,15 +86,15 @@ class FakeConnector(BaseConnector):
 
     def __init__(
         self,
-        secrets: Optional[SecretsProvider] = None,
+        secrets: SecretsProvider | None = None,
         timeout_seconds: float = 8.0,
         max_retries: int = 3,
         retry_min_wait: float = 0.0,
         retry_max_wait: float = 0.0,
         # --- behavioral switches ---
-        search_errors: Optional[list[SupplierError]] = None,
-        price_errors: Optional[list[SupplierError]] = None,
-        book_error: Optional[SupplierError] = None,
+        search_errors: list[SupplierError] | None = None,
+        price_errors: list[SupplierError] | None = None,
+        book_error: SupplierError | None = None,
         price_drift: Decimal = Decimal("0"),
         delay_seconds: float = 0.0,
         base_price: Decimal = Decimal("3000"),
@@ -152,7 +153,7 @@ class FakeConnector(BaseConnector):
             await asyncio.sleep(self._delay_seconds)
         if self._price_errors:
             raise self._price_errors.pop(0)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         drifted_total = offer.total_inr + self._price_drift
         drifted_base = offer.price.base_fare + self._price_drift
         new_price = PriceBreakdown(
@@ -178,6 +179,7 @@ class FakeConnector(BaseConnector):
         priced_offer: PricedOffer,
         passengers: list[Passenger],
         idempotency_key: str,
+        payment: PaymentInstruction,
     ) -> Booking:
         self.book_call_count += 1
         if self._book_error is not None:
@@ -188,4 +190,5 @@ class FakeConnector(BaseConnector):
             passengers=passengers,
             state=BookingState.PNR_CREATED,
             pnr=f"PNR{uuid.uuid4().hex[:6].upper()}",
+            supplier_booking_ref=f"fake_ord_{uuid.uuid4().hex[:8]}",
         )

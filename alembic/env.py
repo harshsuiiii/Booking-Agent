@@ -6,6 +6,9 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from booking_agent.db.models import Base
+from booking_agent.dotenv import load_dotenv
+
+load_dotenv()
 
 config = context.config
 if config.config_file_name is not None:

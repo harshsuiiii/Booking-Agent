@@ -25,6 +25,24 @@ class SupplierMetrics:
     def avg_latency_ms(self) -> float:
         return sum(self.latencies_ms) / len(self.latencies_ms) if self.latencies_ms else 0.0
 
+    def percentile_latency_ms(self, p: float) -> float:
+        """Return the p-th percentile latency (0–100) using nearest-rank method."""
+        if not self.latencies_ms:
+            return 0.0
+        import math
+
+        sorted_lats = sorted(self.latencies_ms)
+        idx = max(0, math.ceil(len(sorted_lats) * p / 100) - 1)
+        return sorted_lats[min(idx, len(sorted_lats) - 1)]
+
+    @property
+    def p50_latency_ms(self) -> float:
+        return self.percentile_latency_ms(50)
+
+    @property
+    def p95_latency_ms(self) -> float:
+        return self.percentile_latency_ms(95)
+
 
 class MetricsCollector:
     def __init__(self) -> None:

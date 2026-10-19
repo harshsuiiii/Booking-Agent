@@ -20,6 +20,11 @@ dependencies = [
     "structlog>=24.0",
     "opentelemetry-api>=1.25",
     "opentelemetry-sdk>=1.25",
+    "cryptography>=42.0",
+    "anthropic>=0.40",
+    "tzdata>=2026.5",
+    "pyjwt>=2.8",
+    "aiosqlite>=0.20",
 ]
 
 [dependency-groups]
@@ -38,6 +43,9 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+booking_agent = ["data/*.csv", "agent/prompts/*.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
@@ -48,7 +56,17 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    "N818",   # domain exception names (SoldOut, FareExpired, ...) are public API
+    "UP042",  # StrEnum changes str()/format() output of existing str+Enum classes
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]  # auth env must be set before app modules are imported
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header", "fastapi.Body"]
 
 [tool.mypy]
 python_version = "3.12"

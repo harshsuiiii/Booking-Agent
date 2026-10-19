@@ -15,8 +15,7 @@ Self-service limitations (as of 2024):
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -33,8 +32,8 @@ from booking_agent.connectors.errors import (
     SupplierAuthError,
     SupplierBadResponse,
     SupplierRateLimited,
-    SupplierTimeout,
 )
+from booking_agent.connectors.payment import PaymentInstruction
 from booking_agent.connectors.protocol import SupplierCapabilities
 from booking_agent.connectors.secrets import SecretsProvider
 from booking_agent.domain.booking import Booking, BookingState, Passenger
@@ -83,7 +82,7 @@ class AmadeusConnector(BaseConnector):
 
     # ── lifecycle ──────────────────────────────────────────────────────────
 
-    async def __aenter__(self) -> "AmadeusConnector":
+    async def __aenter__(self) -> AmadeusConnector:
         await super().__aenter__()
         assert self._client is not None
         self._token_manager = TokenManager(
@@ -113,7 +112,7 @@ class AmadeusConnector(BaseConnector):
         )
         self._raise_for_supplier_error(response, "search")
         body = response.json()
-        searched_at = datetime.now(timezone.utc)
+        searched_at = datetime.now(UTC)
         return [map_offer(raw, searched_at) for raw in body.get("data", [])]
 
     def _build_search_params(self, query: SearchQuery) -> dict[str, Any]:
@@ -167,7 +166,7 @@ class AmadeusConnector(BaseConnector):
         data = response.json()["data"]
         priced_raw = data["flightOffers"][0]
         detailed_rules = data.get("fareRules", {}).get("rules")
-        priced_at = datetime.now(timezone.utc)
+        priced_at = datetime.now(UTC)
 
         priced = map_priced_offer(priced_raw, detailed_rules, priced_at)
 
@@ -188,6 +187,7 @@ class AmadeusConnector(BaseConnector):
         priced_offer: PricedOffer,
         passengers: list[Passenger],
         idempotency_key: str,
+        payment: PaymentInstruction,
     ) -> Booking:
         """
         Creates a PNR via Flight Create Orders.
@@ -243,7 +243,7 @@ class AmadeusConnector(BaseConnector):
             retry_after = int(response.headers.get("Retry-After", 0)) or None
             raise SupplierRateLimited(self.SUPPLIER_ID, retry_after=retry_after)
         if status == 404:
-            errors = (response.json().get("errors") or [{}])
+            errors = response.json().get("errors") or [{}]
             title = errors[0].get("title", "not found")
             if "fare" in title.lower() or "expired" in title.lower():
                 raise FareExpired(self.SUPPLIER_ID, offer_ref=operation)
