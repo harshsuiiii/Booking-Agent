@@ -1,0 +1,55 @@
+# Render Blueprint: the FastAPI backend as one web service.
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Render asks for every
+# `sync: false` value on first deploy; set them in the dashboard, never in this file.
+#
+# Storage: no DATABASE_URL, so users, bookings and searches live in memory and demo data
+# is re-seeded on every start (the free plan has no persistent disk). To keep data, add a
+# Postgres DATABASE_URL (postgresql+asyncpg://...) plus BOOKING_ENCRYPTION_KEY, and run
+# `alembic upgrade head` before start.
+
+services:
+  - type: web
+    name: booking-agent-api
+    runtime: python
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: .venv/bin/uvicorn booking_agent.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      # In-process cache; no Redis server needed.
+      - key: REDIS_URL
+        value: memory://
+      - key: SUPPLIERS_ENABLED
+        value: all
+      - key: DEMO_MODE
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: LOG_LEVEL
+        value: INFO
+      # Trust Render's proxy for the client IP (the login throttle is per IP).
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      # Signs login sessions. Generated once by Render; rotating it signs everyone out.
+      - key: AUTH_SECRET
+        generateValue: true
+      # The web app's URL(s), comma-separated, e.g. https://your-frontend.example.com
+      - key: CORS_ORIGINS
+        sync: false
+      # Demo logins (any strong values).
+      - key: DEMO_AGENT_PASSWORD
+        sync: false
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      # Duffel sandbox: must start with duffel_test_ (anything else is refused at startup).
+      - key: DUFFEL_ACCESS_TOKEN
+        sync: false
+      # Agent chat LLM: first key set wins (Groq, then Gemini).
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

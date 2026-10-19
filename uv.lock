@@ -215,6 +215,7 @@ dependencies = [
     { name = "anthropic" },
     { name = "asyncpg" },
     { name = "cryptography" },
+    { name = "fakeredis" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "opentelemetry-api" },
@@ -232,7 +233,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "aiosqlite" },
-    { name = "fakeredis" },
     { name = "hypothesis" },
     { name = "mypy" },
     { name = "pydantic" },
@@ -249,6 +249,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.40" },
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "cryptography", specifier = ">=42.0" },
+    { name = "fakeredis", specifier = ">=2.0" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "opentelemetry-api", specifier = ">=1.25" },
@@ -267,7 +268,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aiosqlite", specifier = ">=0.20" },
-    { name = "fakeredis", specifier = ">=2.0" },
     { name = "hypothesis", specifier = ">=6.100" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "pydantic", extras = ["mypy"], specifier = ">=2.7" },

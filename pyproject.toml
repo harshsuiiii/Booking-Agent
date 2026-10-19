@@ -25,6 +25,7 @@ dependencies = [
     "tzdata>=2026.5",
     "pyjwt>=2.8",
     "aiosqlite>=0.20",
+    "fakeredis>=2.0",
 ]
 
 [dependency-groups]
@@ -33,7 +34,6 @@ dev = [
     "pytest-asyncio>=0.23",
     "respx>=0.21",
     "hypothesis>=6.100",
-    "fakeredis>=2.0",
     "aiosqlite>=0.20",
     "ruff>=0.4",
     "mypy>=1.10",
