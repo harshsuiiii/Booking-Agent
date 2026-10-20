@@ -1,18 +1,9 @@
 /**
- * Login, route protection, role-specific dashboard/bookings, filters and navigation.
+ * No-login entry, role-specific dashboard/bookings, filters and navigation.
  * API mocked with page.route(); role differences come from the payloads the API sends.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { addSessionCookie, json, signIn, USERS, type Role } from "./helpers";
-
-const CONFIG = {
-  login_enabled: true,
-  demo_mode: true,
-  demo_accounts: [
-    { email: "agent@demo.test", role: "agent", available: true },
-    { email: "admin@demo.test", role: "admin", available: true },
-  ],
-};
+import { json, type Role } from "./helpers";
 
 function bookingItem(role: Role, n: number, state = "TICKETED") {
   const price = role === "admin"
@@ -52,7 +43,6 @@ function charts(role: Role) {
 }
 
 async function mockApp(page: Page, role: Role) {
-  await signIn(page, role);
   const bookingQueries: string[] = [];
   await page.route("**/v1/dashboard/summary", (r) => r.fulfill(json(summary(role))));
   await page.route("**/v1/dashboard/charts", (r) => r.fulfill(json(charts(role))));
@@ -66,63 +56,21 @@ async function mockApp(page: Page, role: Role) {
   return bookingQueries;
 }
 
-test.describe("Sign in and protection", () => {
-  test("signed-out visitors are sent to login, then back where they were going", async ({ page }) => {
-    await page.route("**/v1/auth/config", (r) => r.fulfill(json(CONFIG)));
-    await page.goto("/bookings");
-    await expect(page).toHaveURL(/\/login\?next=%2Fbookings/);
-    await expect(page.getByText("Demo environment · simulated data")).toBeVisible();
-    await expect(page.getByText("agent@demo.test")).toBeVisible();
-    await expect(page.getByText("admin@demo.test")).toBeVisible();
-
-    await page.route("**/v1/auth/login", async (r) => {
-      await addSessionCookie(page.context()); // the real API sets this cookie
-      await r.fulfill(json(USERS.agent));
-    });
+test.describe("No login", () => {
+  test("the app opens straight on the dashboard, with no sign-in anywhere", async ({ page }) => {
     await mockApp(page, "agent");
-    await page.getByLabel("Email").fill("agent@demo.test");
-    await page.getByLabel("Password").fill("correct-password");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page).toHaveURL(/\/bookings$/);
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByText("Bookings this month")).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign out/i })).toHaveCount(0);
+    await page.goto("/bookings");
     await expect(page.getByRole("heading", { name: "Bookings" })).toBeVisible();
   });
 
-  test("wrong password shows a clear error and stays on login", async ({ page }) => {
-    await page.route("**/v1/auth/config", (r) => r.fulfill(json(CONFIG)));
-    await page.route("**/v1/auth/login", (r) => r.fulfill(json({ detail: "Invalid email or password." }, 401)));
-    await page.goto("/login");
-    await page.getByLabel("Email").fill("agent@demo.test");
-    await page.getByLabel("Password").fill("wrong");
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page.locator("form").getByRole("alert")).toHaveText("Invalid email or password.");
-    await expect(page).toHaveURL(/\/login/);
-  });
-
-  test("demo button signs in as the agent", async ({ page }) => {
-    await page.route("**/v1/auth/config", (r) => r.fulfill(json(CONFIG)));
-    await page.route("**/v1/auth/demo", async (r) => {
-      await addSessionCookie(page.context());
-      await r.fulfill(json(USERS.agent));
-    });
-    await mockApp(page, "agent");
-    await page.goto("/login");
-    await page.getByRole("button", { name: "Continue as demo agent" }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText("Demo Agent").first()).toBeVisible();
-  });
-
-  test("an expired session gets a friendly message", async ({ page }) => {
-    await addSessionCookie(page.context());
-    await page.route("**/v1/auth/config", (r) => r.fulfill(json(CONFIG)));
-    await page.route("**/v1/auth/me", (r) =>
-      r.fulfill(json({ detail: "Your session has expired.", code: "session_expired" }, 401)));
-    await page.route("**/v1/dashboard/**", (r) =>
-      r.fulfill(json({ detail: "Your session has expired.", code: "session_expired" }, 401)));
-    await page.route("**/v1/bookings?**", (r) =>
-      r.fulfill(json({ detail: "Your session has expired.", code: "session_expired" }, 401)));
-    await page.goto("/dashboard");
-    await expect(page).toHaveURL(/\/login\?reason=expired/);
-    await expect(page.getByText("Your session has expired. Please sign in again.")).toBeVisible();
+  test("the old login page is gone", async ({ page }) => {
+    const res = await page.goto("/login");
+    expect(res?.status()).toBe(404);
   });
 });
 

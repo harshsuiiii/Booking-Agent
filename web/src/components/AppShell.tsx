@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
-import { useAuth } from "@/lib/auth";
 import {
   ChatIcon,
   CloseIcon,
@@ -13,7 +12,6 @@ import {
   MenuIcon,
   PlaneIcon,
   SearchIcon,
-  SignOutIcon,
   TicketIcon,
 } from "@/components/Icons";
 
@@ -100,38 +98,6 @@ function NavLinks({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: 
   );
 }
 
-function UserPanel({ collapsed }: { collapsed: boolean }) {
-  const { user, signOut } = useAuth();
-  if (!user) return null;
-  return (
-    <div className={`flex items-center gap-2 border-t border-zinc-100 pt-3 ${collapsed ? "flex-col" : ""}`}>
-      <span
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700"
-        aria-hidden="true"
-      >
-        {user.name.slice(0, 1)}
-      </span>
-      {!collapsed && (
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-900">{user.name}</p>
-          <p className="truncate text-xs text-zinc-500">
-            <span className="font-medium capitalize text-zinc-700">{user.role}</span> · {user.email}
-          </p>
-        </div>
-      )}
-      <button
-        type="button"
-        onClick={() => void signOut()}
-        title="Sign out"
-        className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-blue-600"
-      >
-        <SignOutIcon size={18} />
-        <span className="sr-only">Sign out</span>
-      </button>
-    </div>
-  );
-}
-
 export default function AppShell({ children }: { children: ReactNode }) {
   const collapsed = useSyncExternalStore(subscribe, readCollapsed, () => false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -182,7 +148,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
           {collapsed ? <ExpandIcon size={20} /> : <CollapseIcon size={20} />}
           {collapsed ? <span className="sr-only">Expand sidebar</span> : "Collapse sidebar"}
         </button>
-        <UserPanel collapsed={collapsed} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -226,7 +191,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <nav className="flex-1">
                 <NavLinks collapsed={false} onNavigate={() => setDrawerOpen(false)} />
               </nav>
-              <UserPanel collapsed={false} />
             </div>
           </div>
         )}

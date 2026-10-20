@@ -4,11 +4,9 @@
  */
 
 import { test, expect, type Page } from "@playwright/test";
-import { signIn } from "./helpers";
 
 /** Open the search page and wait until it is hydrated (the date is filled client-side). */
 async function gotoSearch(page: Page) {
-  await signIn(page);
   await page.goto("/search");
   await expect(page.getByLabel("Departure date: day")).not.toHaveValue("", { timeout: 30_000 });
 }

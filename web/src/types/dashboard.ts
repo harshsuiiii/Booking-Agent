@@ -1,18 +1,3 @@
-export type Role = "agent" | "admin";
-
-export interface User {
-  email: string;
-  name: string;
-  role: Role;
-  tenant_id: string;
-}
-
-export interface AuthConfig {
-  login_enabled: boolean;
-  demo_mode: boolean;
-  demo_accounts: { email: string; role: Role; available: boolean }[];
-}
-
 export type BookingState =
   | "DRAFT"
   | "PRICED"

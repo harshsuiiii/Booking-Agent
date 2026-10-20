@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Charts, Summary } from "@/types/dashboard";
 import { getJson } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import { day, inr, inrCompact, when } from "@/lib/format";
 import BookingsTable from "@/components/BookingsTable";
 import { BarList, ColumnChart } from "@/components/charts";
@@ -29,7 +28,6 @@ function StatCard({ label, value, note, adminOnly }: { label: string; value: str
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [charts, setCharts] = useState<Charts | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +53,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={user ? `Welcome, ${user.name.split(" ")[0]}` : "Dashboard"}
+        title="Dashboard"
         subtitle={summary ? `Agency overview · ${summary.month}` : "Agency overview"}
         action={
           <Link

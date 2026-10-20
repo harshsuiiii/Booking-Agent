@@ -4,7 +4,6 @@
  */
 
 import { test, expect, type Page, type Request } from "@playwright/test";
-import { signIn } from "./helpers";
 
 const OFFER = {
   offer_id: "offer-xyz",
@@ -115,7 +114,6 @@ async function mockApi(
 }
 
 async function askAndOpenBooking(page: Page) {
-  await signIn(page);
   await page.goto("/assistant");
   await page.getByLabel("Message").fill("DEL to BOM on 20 Nov, 2 adults");
   await page.getByRole("button", { name: "Send" }).click();
@@ -200,7 +198,6 @@ test.describe("Agent chat booking", () => {
         ]),
       }),
     );
-    await signIn(page);
   await page.goto("/assistant");
     await page.getByLabel("Message").fill("hello");
     await page.getByRole("button", { name: "Send" }).click();
@@ -218,7 +215,6 @@ test.describe("Agent chat booking", () => {
         body: sse([{ type: "session", session_id: "s" }, { type: "reply", text: "ok" }, { type: "done" }]),
       });
     });
-    await signIn(page);
   await page.goto("/assistant");
     await page.getByLabel("Message").fill("hello");
     await page.getByRole("button", { name: "Send" }).click();

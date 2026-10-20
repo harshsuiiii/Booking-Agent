@@ -5,7 +5,6 @@
  */
 
 import { test, expect, type Page } from "@playwright/test";
-import { signIn } from "./helpers";
 
 const SEARCH_ID = "form-search-1";
 
@@ -83,7 +82,6 @@ async function mockSearch(page: Page, groups: unknown[] = []): Promise<Body[]> {
 }
 
 async function open(page: Page, query = "") {
-  await signIn(page);
   await page.goto(`/search${query}`);
   // Hydrated once the first date is filled in (dates default on the client only).
   await expect(page.getByLabel(/: day$/).first()).not.toHaveValue("", { timeout: 30_000 });

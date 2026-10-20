@@ -1,19 +1,17 @@
 /**
- * API access for the web app. Authentication is the httpOnly session cookie set by
- * /v1/auth/login, sent with `credentials: "include"`; the browser never sees a key.
- */
-/**
- * Where the API lives. Deployed, requests go to this site's own /v1/..., which
- * next.config.ts forwards to the API (API_PROXY_URL), so they are same-origin and the
- * session cookie just works. Locally, `next dev` talks to uvicorn on :8000.
- * NEXT_PUBLIC_API_URL overrides both; don't set it in production.
+ * API access for the web app. There is no login: the API treats every visitor as an
+ * Agent of the demo agency (sell prices only).
+ *
+ * Where the API lives: deployed, requests go to this site's own /v1/..., which
+ * next.config.ts forwards to the API (API_PROXY_URL), so they are same-origin. Locally,
+ * `next dev` talks to uvicorn on :8000. NEXT_PUBLIC_API_URL overrides both.
  */
 export const API_BASE = (
   process.env.NEXT_PUBLIC_API_URL ??
   (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "")
 ).replace(/\/+$/, "");
 
-/** Error carrying the HTTP status, FastAPI `detail` (string or object) and auth `code`. */
+/** Error carrying the HTTP status, FastAPI `detail` (string or object) and error `code`. */
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -35,26 +33,13 @@ function detailMessage(detail: unknown): string | null {
   return null;
 }
 
-type UnauthorizedHandler = (code: string | undefined) => void;
-let onUnauthorized: UnauthorizedHandler | null = null;
-
-/** The signed-in shell registers this to send the user to /login on 401. */
-export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
-  onUnauthorized = handler;
-}
-
-/** fetch() against the API with the session cookie. Never retried automatically. */
+/** fetch() against the API. Never retried automatically. */
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
-  if (res.status === 401 && !path.startsWith("/v1/auth/")) {
-    const body = await res.clone().json().catch(() => ({}));
-    onUnauthorized?.(body.code);
-  }
-  return res;
+  return fetch(`${API_BASE}${path}`, { ...init, headers });
 }
 
 async function parse<T>(res: Response): Promise<T> {

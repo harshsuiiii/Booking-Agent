@@ -85,12 +85,6 @@ export const ExpandIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const SignOutIcon = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h10" />
-  </Svg>
-);
-
 export const ArrowRightIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M5 12h14M13 6l6 6-6 6" />
