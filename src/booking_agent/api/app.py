@@ -75,6 +75,20 @@ log = structlog.get_logger(__name__)
 ALL_SUPPLIERS = ("duffel", "sim_gds", "sim_consolidator", "sim_ota")
 
 
+# Local dev UI and the deployed web app (Vercel). CORS_ORIGINS replaces this list.
+DEFAULT_CORS_ORIGINS = "http://localhost:3000,https://booking-agent-lemon.vercel.app"
+
+
+def cors_origins() -> list[str]:
+    """Allowed browser origins from CORS_ORIGINS (comma list).
+
+    Browsers send Origin without a trailing slash, so "https://x.app/" would never match;
+    strip slashes and blanks.
+    """
+    raw = os.getenv("CORS_ORIGINS") or DEFAULT_CORS_ORIGINS
+    return [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
+
+
 def enabled_suppliers() -> list[str]:
     """SUPPLIERS_ENABLED (comma list); unset or "all" = every supplier we know."""
     raw = os.getenv("SUPPLIERS_ENABLED", "all").strip().lower()
@@ -326,7 +340,7 @@ def create_app(
     # Outermost: answer browser preflight (OPTIONS) before auth rejects it.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
+        allow_origins=cors_origins(),
         allow_credentials=True,  # the web app sends the session cookie
         allow_methods=["*"],
         allow_headers=["*"],
