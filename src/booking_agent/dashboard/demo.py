@@ -4,12 +4,13 @@ bookings across every booking state. Every seeded booking has is_demo=True and i
 from simulated offers, so nothing here is a real fare, customer or ticket.
 """
 
+import os
 import random
 from collections import deque
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from booking_agent.auth.users import DEMO_TENANT_ID
+from booking_agent.auth.principal import DEMO_TENANT_ID
 from booking_agent.booking.repository import BookingRepository
 from booking_agent.domain.booking import (
     _TRANSITIONS,
@@ -109,6 +110,11 @@ _FAMILY = [
     "Bose",
 ]
 _REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def demo_mode() -> bool:
+    """DEMO_MODE=true: demo agency markup and seeded demo bookings."""
+    return os.getenv("DEMO_MODE", "false").lower() == "true"
 
 
 def demo_markup_rules(tenant_id: str = DEMO_TENANT_ID) -> list[Rule]:

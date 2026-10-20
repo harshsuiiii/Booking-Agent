@@ -1,1 +1,1 @@
-"""Demo-grade authentication: users, hashed passwords, signed session cookies, roles."""
+"""Who is calling and their role. No login: web visitors are a built-in Agent."""

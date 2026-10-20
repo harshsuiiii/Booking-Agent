@@ -1,14 +1,14 @@
 """
-API security middleware: authentication and rate limiting.
+API middleware: who is calling, and rate limiting.
 
 Middleware order in app.py (last added = outermost = runs first):
   1. RequestLoggingMiddleware  (innermost — wraps route, sees response status)
-  2. RateLimitMiddleware       (middle — keyed by the authenticated user)
-  3. AuthMiddleware            (validates the caller first)
+  2. RateLimitMiddleware       (middle — per visitor IP, or per API key)
+  3. AuthMiddleware            (resolves the caller first)
   4. CORSMiddleware            (outermost — answers browser preflights)
 
-Two ways in:
-  - Web app: signed session cookie (see booking_agent.auth.sessions), set by /v1/auth/login.
+There is no login. Two kinds of caller:
+  - Web app / anyone: the built-in visitor, an Agent of the demo agency (sell prices only).
   - Scripts: X-API-Key header, only when API_KEY is configured. Acts as Admin in its tenant.
 """
 
@@ -25,17 +25,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from booking_agent.auth.principal import Principal
-from booking_agent.auth.sessions import (
-    SESSION_COOKIE,
-    SessionExpired,
-    SessionInvalid,
-    auth_secret,
-    decode_session_token,
-)
-from booking_agent.auth.users import DEMO_TENANT_ID
+from booking_agent.auth.principal import DEMO_TENANT_ID, VISITOR, Principal
 
-# Paths that skip authentication entirely.
+# Paths that skip caller resolution and rate limiting entirely.
 _AUTH_EXCLUDED: frozenset[str] = frozenset(
     {
         "/health",
@@ -43,10 +35,6 @@ _AUTH_EXCLUDED: frozenset[str] = frozenset(
         "/docs",
         "/redoc",
         "/openapi.json",
-        "/v1/auth/login",
-        "/v1/auth/demo",
-        "/v1/auth/logout",
-        "/v1/auth/config",
     }
 )
 
@@ -96,24 +84,15 @@ def _api_key_principal(api_key: str) -> Principal | None:
     return None
 
 
-def _unauthorized(detail: str, code: str, clear_cookie: bool = False) -> JSONResponse:
-    response = JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": detail, "code": code}
-    )
-    if clear_cookie:
-        response.delete_cookie(SESSION_COOKIE, path="/")
-    return response
-
-
-# ── auth middleware ───────────────────────────────────────────────────────────
+# ── caller middleware ─────────────────────────────────────────────────────────
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """
     Resolves the caller into request.state.principal (and tenant_id / actor).
 
-    401 responses carry a machine-readable `code` so the UI can tell
-    "please sign in" (auth_required) from "your session expired" (session_expired).
+    No credentials → the built-in visitor (Agent). A wrong API key is still rejected
+    with 401, so a script never silently runs with fewer rights than it expects.
     """
 
     async def dispatch(
@@ -122,28 +101,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in _AUTH_EXCLUDED or request.url.path.startswith("/openapi"):
             return await call_next(request)
 
-        principal: Principal | None = None
+        principal = VISITOR
         api_key = request.headers.get("X-API-Key", "")
-        token = request.cookies.get(SESSION_COOKIE)
-
         if api_key:
-            principal = _api_key_principal(api_key)
-            if principal is None:
-                return _unauthorized("Invalid API key", "invalid_api_key")
-        elif token:
-            secret = auth_secret()
-            if secret is None:
-                return _unauthorized("Login is not configured", "auth_required", True)
-            try:
-                principal = decode_session_token(token, secret)
-            except SessionExpired:
-                return _unauthorized(
-                    "Your session has expired. Please sign in again.", "session_expired", True
+            keyed = _api_key_principal(api_key)
+            if keyed is None:
+                return JSONResponse(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content={"detail": "Invalid API key", "code": "invalid_api_key"},
                 )
-            except SessionInvalid:
-                return _unauthorized("Please sign in again.", "session_invalid", True)
-        else:
-            return _unauthorized("Authentication required", "auth_required")
+            principal = keyed
 
         request.state.principal = principal
         request.state.tenant_id = principal.tenant_id
@@ -192,10 +159,8 @@ class RateLimiter:
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Enforces per-tenant request rate limits.
-
-    Skips auth-excluded paths. Uses tenant_id from request.state (set by
-    AuthMiddleware which runs first). Falls back to remote IP if not set.
+    Enforces request rate limits: per API key for scripts, per client IP for visitors
+    (every visitor is the same principal, so keying on it would make one shared bucket).
     """
 
     def __init__(self, app: object, rate_limiter: RateLimiter) -> None:
@@ -209,8 +174,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         principal = getattr(request.state, "principal", None)
-        key = principal.user_id if principal is not None else None
-        if key is None:
+        if principal is not None and principal.via == "api_key":
+            key = principal.user_id
+        else:
             key = request.client.host if request.client else "unknown"
 
         if not self._limiter.is_allowed(key):

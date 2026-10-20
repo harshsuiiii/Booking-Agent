@@ -12,7 +12,6 @@ Test usage::
 """
 
 import os
-from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from typing import Any
@@ -22,6 +21,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
+from sqlalchemy import text
 
 from booking_agent.agent.runner import AgentRunner
 from booking_agent.agent.session import AgentSession
@@ -29,20 +29,12 @@ from booking_agent.api.middleware import AuthMiddleware, RateLimiter, RateLimitM
 from booking_agent.api.routes.admin import router as admin_router
 from booking_agent.api.routes.agent import router as agent_router
 from booking_agent.api.routes.airports import router as airports_router
-from booking_agent.api.routes.auth import router as auth_router
 from booking_agent.api.routes.booking import router as booking_router
 from booking_agent.api.routes.dashboard import router as dashboard_router
 from booking_agent.api.routes.hotel_search import router as hotel_search_router
 from booking_agent.api.routes.price import router as price_router
 from booking_agent.api.routes.search import router as search_router
 from booking_agent.api.session import SearchSession
-from booking_agent.auth.users import (
-    InMemoryUserRepository,
-    SqlUserRepository,
-    UserRepository,
-    demo_mode,
-    seed_demo_users,
-)
 from booking_agent.booking.encryption import check_encryption_key
 from booking_agent.booking.payment_gateway import FakePaymentGateway
 from booking_agent.booking.repository import (
@@ -56,7 +48,7 @@ from booking_agent.connectors.fake import FakeConnector
 from booking_agent.connectors.fake_hotel import FakeHotelConnector
 from booking_agent.connectors.hotel_protocol import HotelConnector
 from booking_agent.connectors.protocol import Connector
-from booking_agent.dashboard.demo import demo_markup_rules, seed_demo_bookings
+from booking_agent.dashboard.demo import demo_markup_rules, demo_mode, seed_demo_bookings
 from booking_agent.dashboard.recent_searches import (
     InMemoryRecentSearchStore,
     RecentSearchStore,
@@ -155,9 +147,8 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     for c in app.state.hotel_connectors:
         await c.__aenter__()
     if demo_mode():
-        seeded = await seed_demo_users(app.state.users)
         bookings = await seed_demo_bookings(app.state.booking_service.repository)
-        log.info("demo.ready", accounts=seeded, bookings_created=bookings)
+        log.info("demo.ready", bookings_created=bookings)
     yield
     # Exit flight connectors
     for c in app.state.connectors.values():
@@ -238,12 +229,6 @@ def create_app(
         app.state.db_engine = engine
         session_factory = AsyncSessionFactory(engine)
 
-    users: UserRepository = (
-        SqlUserRepository(session_factory) if session_factory else InMemoryUserRepository()
-    )
-    app.state.users = users
-    login_attempts: dict[str, deque[float]] = {}
-    app.state.login_attempts = login_attempts
     recent: RecentSearchStore = (
         SqlRecentSearchStore(session_factory) if session_factory else InMemoryRecentSearchStore()
     )
@@ -318,7 +303,6 @@ def create_app(
     hotel_search_registry: dict[str, Any] = {}
     app.state.hotel_search_registry = hotel_search_registry
 
-    app.include_router(auth_router)
     app.include_router(dashboard_router)
     app.include_router(search_router)
     app.include_router(airports_router)
@@ -341,7 +325,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins(),
-        allow_credentials=True,  # the web app sends the session cookie
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -358,12 +342,22 @@ def create_app(
             redis_ok = True
         except Exception:
             pass
-        ok = redis_ok
+        db_ok: bool | None = None  # None: no database configured (in-memory storage)
+        engine = request.app.state.db_engine
+        if engine is not None:
+            try:
+                async with engine.connect() as conn:
+                    await conn.execute(text("SELECT 1"))
+                db_ok = True
+            except Exception:
+                db_ok = False
+        ok = redis_ok and db_ok is not False
         return JSONResponse(
             status_code=200 if ok else 503,
             content={
                 "status": "ok" if ok else "degraded",
                 "redis": redis_ok,
+                "db": db_ok,
                 "suppliers": request.app.state.supplier_status,
             },
         )

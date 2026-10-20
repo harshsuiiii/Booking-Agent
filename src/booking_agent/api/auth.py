@@ -1,8 +1,8 @@
 """
 Tenant dependency for routes.
 
-AuthMiddleware authenticates every request (session cookie or API key) and attaches a
-Principal; this exposes the caller's tenant in the shape older routes expect.
+AuthMiddleware attaches a Principal to every request (the built-in visitor, or an API
+key's tenant); this exposes the caller's tenant in the shape older routes expect.
 """
 
 from dataclasses import dataclass, field

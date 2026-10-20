@@ -5,7 +5,6 @@ import os
 # Test-only auth settings, set before any app module reads them. Real values live in .env.
 os.environ.setdefault("API_KEY", "dev-key")
 os.environ.setdefault("API_KEY_TENANT", "default")
-os.environ.setdefault("AUTH_SECRET", "test-secret-not-for-production-0123456789")
 os.environ["DEMO_MODE"] = "false"
 
 from datetime import UTC, datetime

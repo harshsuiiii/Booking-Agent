@@ -80,9 +80,9 @@ class TestStartSearch:
         assert "search_id" in body
         assert len(body["search_id"]) > 0
 
-    async def test_requires_auth(self, client):
+    async def test_no_key_is_a_visitor(self, client):
         r = await client.post("/v1/search", json=SEARCH_BODY)
-        assert r.status_code == 401  # AuthMiddleware intercepts before route validation
+        assert r.status_code == 202  # no login: anyone may search, as an Agent
 
     async def test_invalid_api_key(self, client):
         r = await client.post("/v1/search", json=SEARCH_BODY, headers={"X-API-Key": "wrong"})

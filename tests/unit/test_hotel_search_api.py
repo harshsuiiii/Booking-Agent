@@ -44,11 +44,12 @@ class TestHotelSearchStart:
         assert "search_id" in body
         assert len(body["search_id"]) > 0
 
-    async def test_requires_auth(self):
+    async def test_visitor_is_not_admin(self):
+        """Hotel search shows net prices, so the Agent visitor (no key) is refused."""
         app = _make_app()
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.post("/v1/hotels/search", json=HOTEL_BODY)
-        assert r.status_code == 401
+        assert r.status_code == 403
 
     async def test_past_checkin_rejected(self):
         app = _make_app()

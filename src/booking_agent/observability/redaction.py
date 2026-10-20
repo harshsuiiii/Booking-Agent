@@ -17,18 +17,18 @@ _PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"duffel_(test|live)_[A-Za-z0-9_\-]+"), r"duffel_\1_REDACTED"),
     (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9\-._~+/]+=*"), "Bearer REDACTED"),
     (re.compile(r'(?i)("?(?:authorization|x-api-key)"?\s*[:=]\s*"?)[^",}\s]+'), r"\1REDACTED"),
+    # Database URLs: keep scheme, user and host, hide the password.
+    (re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?://[^:/@\s]+:)[^@\s]+@"), r"\1REDACTED@"),
 ]
 _SECRET_ENV = (
     "DUFFEL_ACCESS_TOKEN",
     "API_KEY",
-    "AUTH_SECRET",
+    "DATABASE_URL",
     "BOOKING_ENCRYPTION_KEY",
     "GROQ_API_KEY",
     "GEMINI_API_KEY",
     "CEREBRAS_API_KEY",
     "ANTHROPIC_API_KEY",
-    "DEMO_AGENT_PASSWORD",
-    "DEMO_ADMIN_PASSWORD",
 )
 
 

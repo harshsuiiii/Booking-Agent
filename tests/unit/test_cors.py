@@ -26,7 +26,7 @@ def test_preflight_from_vercel_is_allowed(monkeypatch: pytest.MonkeyPatch) -> No
         create_app(connectors=[FakeConnector()], redis=fakeredis.aioredis.FakeRedis())
     )
     res = client.options(
-        "/v1/auth/me",
+        "/v1/bookings",
         headers={"Origin": VERCEL, "Access-Control-Request-Method": "GET"},
     )
     assert res.status_code == 200

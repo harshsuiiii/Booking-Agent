@@ -36,11 +36,12 @@ SEARCH_BODY = {"origin": "DEL", "destination": "BOM", "departure_date": "2027-09
 
 
 class TestAuthMiddleware:
-    async def test_missing_key_returns_401(self):
+    async def test_no_key_is_the_visitor(self):
+        """No login: a request without credentials runs as the built-in Agent visitor."""
         app = _make_app()
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.post("/v1/search", json=SEARCH_BODY)
-        assert r.status_code == 401
+        assert r.status_code == 202
 
     async def test_invalid_key_returns_401(self):
         app = _make_app()
@@ -70,7 +71,8 @@ class TestAuthMiddleware:
         """401 error body must not leak internal registry contents."""
         app = _make_app()
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post("/v1/search", json=SEARCH_BODY)
+            r = await c.post("/v1/search", json=SEARCH_BODY, headers={"X-API-Key": "wrong"})
+        assert r.status_code == 401
         body = r.json()
         # Must not contain any hash or internal token in the response
         assert "sha256" not in str(body).lower()
@@ -162,6 +164,15 @@ class TestTenantIsolation:
             r2 = await c.get(f"/v1/search/{search_id}", headers={"X-API-Key": "wrong-key"})
         assert r2.status_code in (401, 404)
 
+    async def test_visitor_cannot_read_another_tenants_search(self):
+        """The visitor (demo agency) can't open a search started by another tenant's key."""
+        app = _make_app()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post("/v1/search", json=SEARCH_BODY, headers=HEADERS)
+            search_id = r.json()["search_id"]
+            assert (await c.get(f"/v1/search/{search_id}")).status_code == 404
+            assert (await c.get(f"/v1/search/{search_id}/stream")).status_code == 404
+
     async def test_booking_tenant_scoped(self):
         """GET /v1/bookings returns only bookings for the authenticated tenant."""
         app = _make_app()
@@ -172,11 +183,11 @@ class TestTenantIsolation:
         body = r.json()
         assert isinstance(body["items"], list) and body["total"] == len(body["items"])
 
-    async def test_unauthenticated_cannot_list_bookings(self):
+    async def test_visitor_lists_only_the_demo_agencys_bookings(self):
         app = _make_app()
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.get("/v1/bookings")
-        assert r.status_code == 401
+        assert r.status_code == 200 and r.json()["total"] == 0
 
 
 # ── Input validation ──────────────────────────────────────────────────────────
