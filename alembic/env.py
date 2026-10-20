@@ -3,9 +3,9 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from booking_agent.db.models import Base
+from booking_agent.db.session import create_engine, normalize_db_url
 from booking_agent.dotenv import load_dotenv
 
 load_dotenv()
@@ -16,8 +16,8 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url from env if set
-db_url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+# Override sqlalchemy.url from env if set; Supabase-style postgres:// URLs are accepted.
+db_url = normalize_db_url(os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url"))
 
 
 def run_migrations_offline() -> None:
@@ -38,7 +38,7 @@ def do_run_migrations(connection):
 
 
 async def run_migrations_online() -> None:
-    engine = create_async_engine(db_url)
+    engine = create_engine(db_url)
     async with engine.connect() as conn:
         await conn.run_sync(do_run_migrations)
     await engine.dispose()

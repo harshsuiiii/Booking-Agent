@@ -2,10 +2,11 @@
 # Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Render asks for every
 # `sync: false` value on first deploy; set them in the dashboard, never in this file.
 #
-# Storage: no DATABASE_URL, so users, bookings and searches live in memory and demo data
-# is re-seeded on every start (the free plan has no persistent disk). To keep data, add a
-# Postgres DATABASE_URL (postgresql+asyncpg://...) plus BOOKING_ENCRYPTION_KEY, and run
-# `alembic upgrade head` before start.
+# No login: every visitor is an Agent of the demo agency (sell prices only).
+# Storage: Supabase Postgres via DATABASE_URL (use the Session pooler URL,
+# *.pooler.supabase.com:5432; the direct db.*.supabase.co host is IPv6-only and Render
+# can't reach it). Migrations run on every start, before the server; demo bookings are
+# seeded only into an empty database. Without DATABASE_URL, everything is in memory.
 
 services:
   - type: web
@@ -15,7 +16,7 @@ services:
     branch: main
     autoDeploy: true
     buildCommand: pip install uv && uv sync --frozen --no-dev
-    startCommand: .venv/bin/uvicorn booking_agent.api.main:app --host 0.0.0.0 --port $PORT
+    startCommand: if [ -n "$DATABASE_URL" ]; then .venv/bin/alembic upgrade head; fi && .venv/bin/uvicorn booking_agent.api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
@@ -27,24 +28,22 @@ services:
         value: all
       - key: DEMO_MODE
         value: "true"
-      - key: COOKIE_SECURE
-        value: "true"
       - key: LOG_LEVEL
         value: INFO
-      # Trust Render's proxy for the client IP (the login throttle is per IP).
+      # Trust Render's proxy for the client IP (rate limits are per visitor IP).
       - key: FORWARDED_ALLOW_IPS
         value: "*"
-      # Signs login sessions. Generated once by Render; rotating it signs everyone out.
-      - key: AUTH_SECRET
-        generateValue: true
       # The web app's URL(s), comma-separated. The web app normally reaches the API through
       # its own /v1 proxy (API_PROXY_URL on Vercel), so CORS only matters for direct calls.
       - key: CORS_ORIGINS
         value: https://booking-agent-lemon.vercel.app
-      # Demo logins (any strong values).
-      - key: DEMO_AGENT_PASSWORD
+      # Supabase: Project -> Connect -> Session pooler URI (postgresql://...pooler.supabase.com:5432/postgres).
+      - key: DATABASE_URL
         sync: false
-      - key: DEMO_ADMIN_PASSWORD
+      # Encrypts passenger details in the database. Generate once and keep it: changing it
+      # makes existing bookings' passengers unreadable.
+      #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - key: BOOKING_ENCRYPTION_KEY
         sync: false
       # Duffel sandbox: must start with duffel_test_ (anything else is refused at startup).
       - key: DUFFEL_ACCESS_TOKEN
