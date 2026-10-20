@@ -240,6 +240,28 @@ class TestRoleRules:
             assert (await visitor.get(f"/v1/search/{sid}/stream")).status_code == 404
             assert (await visitor.get(f"/v1/search/{sid}")).status_code == 404
 
+    @pytest.mark.parametrize(
+        "method,path,body",
+        [
+            ("GET", "/v1/admin/rules", None),
+            ("GET", "/v1/admin/rules/any-id", None),
+            ("POST", "/v1/admin/rules", {}),
+            ("PUT", "/v1/admin/rules/any-id", {}),
+            ("DELETE", "/v1/admin/rules/any-id", None),
+        ],
+    )
+    async def test_visitor_cannot_read_or_change_markup_rules(
+        self, demo_app: Any, method: str, path: str, body: dict[str, Any] | None
+    ) -> None:
+        async with _client(demo_app, None) as c:
+            r = await c.request(method, path, json=body)
+        assert r.status_code == 403
+
+    async def test_admin_key_reaches_markup_rules(self, demo_app: Any) -> None:
+        async with _client(demo_app, "admin") as c:
+            r = await c.get("/v1/admin/rules")
+        assert r.status_code != 403
+
     async def test_visitor_blocked_from_hotel_net_prices(self, demo_app: Any) -> None:
         async with _client(demo_app, None) as c:
             r = await c.post("/v1/hotels/search", json={})

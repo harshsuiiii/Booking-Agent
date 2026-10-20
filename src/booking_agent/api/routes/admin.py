@@ -1,6 +1,8 @@
 """
 Admin API: CRUD endpoints for pricing rules.
 
+Admin only (API key): markup and commission rules reveal how sell prices relate to net
+fares, so the visitor (an Agent) can neither read nor change them.
 Rules are tenant-scoped. The authenticated tenant may only view and manage its own rules.
 Versioning: every update bumps the rule's version; deletes soft-delete (is_active=False).
 An immutable audit log is written for every mutation.
@@ -13,10 +15,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from booking_agent.auth.principal import require_admin
 from booking_agent.db.models import RuleAuditEntry, RuleRecord
 from booking_agent.rules.model import Rule, RuleAction, RuleScope
 
-router = APIRouter(prefix="/v1/admin/rules", tags=["admin"])
+router = APIRouter(prefix="/v1/admin/rules", tags=["admin"], dependencies=[Depends(require_admin)])
 
 
 # ── request / response schemas ────────────────────────────────────────────────
