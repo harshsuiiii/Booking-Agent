@@ -8,9 +8,10 @@
  * session cookie just works. Locally, `next dev` talks to uvicorn on :8000.
  * NEXT_PUBLIC_API_URL overrides both; don't set it in production.
  */
-export const API_BASE =
+export const API_BASE = (
   process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "")
+).replace(/\/+$/, "");
 
 /** Error carrying the HTTP status, FastAPI `detail` (string or object) and auth `code`. */
 export class ApiError extends Error {
